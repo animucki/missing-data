@@ -8,7 +8,7 @@
 #' @param alpha Numeric vector of length 3 containing the true values of missingness mechanism parameters \alpha.
 #' @param gamma Parameter linking the missingness mechanism to the random effect \gamma.
 #' 
-#' @return Dataframe with 
+#' @return Dataframe with result
 generateSamples <- function(samples = 10,
                             participants = 50,
                             timePoints = seq(0, 3, len=5),
@@ -43,8 +43,28 @@ generateSamples <- function(samples = 10,
            rMNAR = rbinom(n = samples*participants*length(timePoints),
                           size = 1,
                           prob = p)
-    ) %>%
-    select(-randIntercept) #drop the random intercept column
+    )
+  
+  #for MAR indicator, match to the non-random proportion of missingness 
+  propObserved <- df %>% select(time>0) %>% pull(rMNAR) %>% mean
+  df <- df %>% mutate(p = case_when(
+    near(time, 0) ~ 1,
+    rMNAR = rbinom(n = samples*participants*length(timePoints),
+                   size = 1,
+                   prob = propObserved)))
+  
+  #create new y variables
+  df <- df %>% mutate(
+    yMAR = case_when(
+      rMAR == 1 ~ y,
+      rMAR == 0 ~ NA
+    ),
+    yMNAR = case_when(
+      rMNAR == 1 ~ y,
+      rMNAR == 0 ~ NA
+    )
+  ) %>%
+    select(-y, -rMAR, -rMNAR, -randIntercept) #drop underlying values
   
   df
 }
