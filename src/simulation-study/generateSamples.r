@@ -18,7 +18,7 @@ generateSamples <- function(samples = 10,
                             gamma = 1.5,
                             seed = 666) {
   
-  flog.info(paste0('Generating ', samples, ' samples with seed ', seed,'.'))
+  flog.info(paste0('Generating ', samples, ' samples with seed ', seed,'...'))
   
   flog.debug('Arguments:')
   flog.debug(str(as.list(match.call())[-1], no.list = F))
@@ -26,7 +26,7 @@ generateSamples <- function(samples = 10,
   #initialize random number generation
   set.seed(seed = seed)
   
-  if(participants %% 2) flog.error('The simulation assumes an even number of participants. Results may be nonsensical.')
+  if(participants %% 2) flog.warn('The simulation assumes an even number of participants. Results may be nonsensical.')
   
   #generate dataset
   #first, non-time-dependent part
