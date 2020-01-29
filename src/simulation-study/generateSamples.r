@@ -17,6 +17,12 @@ generateSamples <- function(samples = 10,
                             alpha = c(1.6, -0.5, 2.5),
                             gamma = 1.5,
                             seed = 666) {
+  
+  flog.info(paste0('Generating ', samples, ' samples with seed ', seed,'.'))
+  
+  flog.debug('Arguments:')
+  flog.debug(str(as.list(match.call())[-1], no.list = F))
+  
   #initialize random number generation
   set.seed(seed = seed)
   
@@ -66,5 +72,6 @@ generateSamples <- function(samples = 10,
   ) %>%
     select(-y, -rMAR, -rMNAR, -randIntercept, -p) #drop underlying values
 
+  flog.info('Data generation complete.')
   df
 }
