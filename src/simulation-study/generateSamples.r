@@ -44,8 +44,7 @@ generateSamples <- function(samples = 10,
                           size = 1,
                           prob = p)
     ) %>%
-    select(-randIntercept) %>% #drop the random intercept column
-    
+    select(-randIntercept) #drop the random intercept column
   
   df
 }
