@@ -20,7 +20,7 @@ generateSamples <- function(samples = 10,
   #initialize random number generation
   set.seed(seed = seed)
   
-  if(participants %% 2) flog.error('The simulation assumes an even number of participants.')
+  if(participants %% 2) flog.error('The simulation assumes an even number of participants. Results may be nonsensical.')
   
   #generate dataset
   #first, non-time-dependent part
@@ -37,12 +37,15 @@ generateSamples <- function(samples = 10,
     uncount(length(timePoints)) %>% #this duplicates each row to make space for the repeated observations
     mutate(time = rep(timePoints, times = samples*participants),
            y = beta[1] + beta[2]*time + beta[3]*treatment + randIntercept + rnorm(samples*participants*length(timePoints), sd=sigma),
-           p = plogis(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept),
+           p = case_when(
+             time == 0 ~ 1,
+             TRUE      ~ plogis(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept)),
            rMNAR = rbinom(n = samples*participants*length(timePoints),
                           size = 1,
                           prob = p)
     ) %>%
-    select(-randIntercept) #drop the random intercept column
+    select(-randIntercept) %>% #drop the random intercept column
+    
   
   df
 }
