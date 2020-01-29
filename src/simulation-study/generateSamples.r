@@ -31,8 +31,8 @@ generateSamples <- function(samples = 10,
   #generate dataset
   #first, non-time-dependent part
   df <- data.frame(
-    sample = rep(1:samples, each = participants),
-    subject = rep(1:participants, times = samples),
+    sample = as.factor(rep(1:samples, each = participants)),
+    subject = as.factor(rep(1:participants, times = samples)),
     randIntercept = as.vector(t(rmvnorm(
       n = samples*participants/2,
       mean = c(1.35, -1.35),
