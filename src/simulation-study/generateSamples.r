@@ -38,8 +38,8 @@ generateSamples <- function(samples = 10,
     mutate(time = rep(timePoints, times = samples*participants),
            y = beta[1] + beta[2]*time + beta[3]*treatment + randIntercept + rnorm(samples*participants*length(timePoints), sd=sigma),
            p = case_when(
-             time == 0 ~ 1,
-             TRUE      ~ plogis(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept)),
+             near(time, 0) ~ 1,
+             time > 0 ~ plogis(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept)),
            rMNAR = rbinom(n = samples*participants*length(timePoints),
                           size = 1,
                           prob = p)
