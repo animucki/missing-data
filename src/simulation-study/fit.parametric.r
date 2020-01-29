@@ -82,7 +82,7 @@ fit.parametric <- function(d, key) {
                  lower = c(rep(-Inf, 7), 1e-4, 1e-4), #the 1e-4 are positivity constraints on variances
                  upper = Inf,
                  hessian = FALSE,
-                 control = list(trace=1, REPORT=1, maxit=10)
+                 control = list(trace=1, REPORT=1)
     )
     if(res$convergence > 1) flog.error('Parametric model likelihood did not converge')
     
