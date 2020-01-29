@@ -46,25 +46,25 @@ generateSamples <- function(samples = 10,
     )
   
   #for MAR indicator, match to the non-random proportion of missingness 
-  propObserved <- df %>% select(time>0) %>% pull(rMNAR) %>% mean
-  df <- df %>% mutate(p = case_when(
-    near(time, 0) ~ 1,
-    rMNAR = rbinom(n = samples*participants*length(timePoints),
-                   size = 1,
-                   prob = propObserved)))
-  
+  propObserved <- df %>% filter(time>0) %>% pull(rMNAR) %>% mean
+  df <- df %>% mutate(rMAR = case_when(
+    near(time, 0) ~ 1L,
+    time > 0 ~ rbinom(n = samples*participants*length(timePoints),
+                      size = 1,
+                      prob = propObserved)))
+
   #create new y variables
   df <- df %>% mutate(
     yMAR = case_when(
       rMAR == 1 ~ y,
-      rMAR == 0 ~ NA
+      rMAR == 0 ~ NA_real_
     ),
     yMNAR = case_when(
       rMNAR == 1 ~ y,
-      rMNAR == 0 ~ NA
+      rMNAR == 0 ~ NA_real_
     )
   ) %>%
-    select(-y, -rMAR, -rMNAR, -randIntercept) #drop underlying values
-  
+    select(-y, -rMAR, -rMNAR, -randIntercept, -p) #drop underlying values
+
   df
 }
