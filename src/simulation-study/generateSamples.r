@@ -70,7 +70,7 @@ generateSamples <- function(samples = 10,
       rMNAR == 0 ~ NA_real_
     )
   ) %>%
-    select(-y, -rMAR, -rMNAR, -randIntercept, -p) #drop underlying values
+    select(-y, -randIntercept, -p) #drop underlying values
 
   flog.info('Data generation complete.')
   df

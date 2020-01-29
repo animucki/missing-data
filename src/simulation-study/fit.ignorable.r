@@ -1,7 +1,7 @@
 fit.ignorable <- function(d, key) {
   flog.debug(paste0('Fitting ignorable model to sample ', key))
   
-  m <- lmer(y ~ (1|subject) + treatment + time,
+  m <- lmer(y ~ (1|subject) + time + treatment,
             data=d, REML=F)
   beta <- fixef(m)
   names(beta)[1] <- 'intercept'
