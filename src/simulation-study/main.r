@@ -23,16 +23,16 @@ df <- generateSamples(samples = 10)
 res <- list()
 
 flog.info('Fitting ignorable model to MAR scenario...')
-# res[[1]] <- df %>% mutate(y=yMAR, model='ignorable', scenario='MAR') %>% group_by(sample) %>% group_modify(fit.ignorable)
+# res[[1]] <- df %>% mutate(y=yMAR) %>% group_by(sample) %>% group_modify(fit.ignorable) %>% mutate(model='ignorable', scenario='MAR')
 
 flog.info('Fitting ignorable model to MNAR scenario...')
-# res[[2]] <- df %>% mutate(y=yMNAR, model='ignorable', scenario='MNAR') %>% group_by(sample) %>% group_modify(fit.ignorable)
+# res[[2]] <- df %>% mutate(y=yMNAR) %>% group_by(sample) %>% group_modify(fit.ignorable) %>% mutate(model='ignorable', scenario='MNAR')
 
 flog.info('Fitting parametric model to MAR scenario...')
-res[[3]] <- df %>% mutate(y=yMAR, r=rMAR, model='parametric', scenario='MAR') %>% group_by(sample) %>% group_modify(fit.parametric)
+res[[3]] <- df %>% mutate(y=yMAR, r=rMAR) %>% group_by(sample) %>% group_modify(fit.parametric) %>% mutate(model='parametric', scenario='MAR')
 
 flog.info('Fitting parametric model to MNAR scenario...')
-# res[[4]] <- df %>% mutate(y=yMNAR, r=rMNAR, model='parametric', scenario='MNAR') %>% group_by(sample) %>% group_modify(fit.parametric)
+# res[[4]] <- df %>% mutate(y=yMNAR, r=rMNAR) %>% group_by(sample) %>% group_modify(fit.parametric) %>% model(model='parametric', scenario='MNAR')
 
 result <- bind_rows(res)
 
