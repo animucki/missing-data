@@ -35,7 +35,7 @@ generateSamples <- function(samples = 10,
     subject = as.factor(rep(1:participants, times = samples)),
     randIntercept = as.vector(t(rmvnorm(
       n = samples*participants/2,
-      mean = c(1.35, -1.35),
+      # mean = c(1.35, -1.35),
       sigma = diag(c(0.2^2, 0.6^2))
     ))),
     treatment = c(0,1)
