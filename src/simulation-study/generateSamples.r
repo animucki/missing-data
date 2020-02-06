@@ -14,17 +14,14 @@ generateSamples <- function(samples = 10,
                             timePoints = seq(0, 3, len=5),
                             beta = c(-1.2, 0.5, -1.5),
                             sigma = sqrt(0.5),
+                            sigma.b = sqrt(2),
                             alpha = c(1.6, -0.5, 2.5),
-                            gamma = 1.5,
-                            seed = 666) {
+                            gamma = 1.5) {
   
-  flog.info(paste0('Generating ', samples, ' samples with seed ', seed,'...'))
+  flog.info(paste0('Generating ', samples, '...'))
   
   flog.debug('Arguments:')
   flog.debug(str(as.list(match.call())[-1], no.list = F))
-  
-  #initialize random number generation
-  set.seed(seed = seed)
   
   if(participants %% 2) flog.warn('The simulation assumes an even number of participants. Results may be nonsensical.')
   
@@ -33,11 +30,8 @@ generateSamples <- function(samples = 10,
   df <- data.frame(
     sample = as.factor(rep(1:samples, each = participants)),
     subject = as.factor(rep(1:participants, times = samples)),
-    randIntercept = as.vector(t(rmvnorm(
-      n = samples*participants/2,
-      # mean = c(1.35, -1.35),
-      sigma = diag(c(0.2^2, 0.6^2))
-    ))),
+    classIntercept = as.vector(c(-2,-1,1,2) %*% rmultinom(n = samples*participants, size=1, prob=c(1,2,2,1))),
+    randIntercept = runif(n = samples*participants, min = -sqrt(3)*sigma.b, max = sqrt(3)*sigma.b),
     treatment = c(0,1)
   ) %>%
     uncount(length(timePoints)) %>% #this duplicates each row to make space for the repeated observations

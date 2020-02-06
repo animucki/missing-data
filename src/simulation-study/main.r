@@ -1,7 +1,8 @@
 # clear workspace
 rm(list = ls())
 
-flog.info('Loading libraries...')
+set.seed(666)
+
 library(dplyr)
 library(futile.logger)
 library(lme4)
@@ -9,6 +10,7 @@ library(fastGHQuad)
 library(mvtnorm)
 library(numDeriv)
 library(stats4)
+library(tictoc)
 library(tidyr)
 
 flog.info('Sourcing functions...')
@@ -17,7 +19,7 @@ source("src/simulation-study/fit.ignorable.r")
 source("src/simulation-study/fit.parametric.r")
 
 flog.threshold('trace')
-df <- generateSamples(samples = 10)
+df <- generateSamples(samples = 1, participants = 10000)
 
 # ALL SAMPLES
 res <- list()
