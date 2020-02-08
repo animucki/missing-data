@@ -16,7 +16,8 @@ generateSamples <- function(samples = 10,
                             sigma = sqrt(0.5),
                             sigma.b = sqrt(2),
                             alpha = c(1.6, -0.5, 2.5),
-                            gamma = 1.5) {
+                            gamma = 1.5,
+                            delta = 0.5) {
   
   flog.info(paste0('Generating ', samples, '...'))
   
@@ -36,10 +37,10 @@ generateSamples <- function(samples = 10,
   ) %>%
     uncount(length(timePoints)) %>% #this duplicates each row to make space for the repeated observations
     mutate(time = rep(timePoints, times = samples*participants),
-           y = beta[1] + beta[2]*time + beta[3]*treatment + randIntercept + rnorm(samples*participants*length(timePoints), sd=sigma),
+           y = beta[1] + beta[2]*time + beta[3]*treatment + randIntercept + classIntercept + rnorm(samples*participants*length(timePoints), sd=sigma),
            p = case_when(
              near(time, 0) ~ 1,
-             time > 0 ~ plogis(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept)),
+             time > 0 ~ pnorm(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept + delta*classIntercept)),
            rMNAR = rbinom(n = samples*participants*length(timePoints),
                           size = 1,
                           prob = p)
