@@ -18,6 +18,7 @@ source("src/simulation-study/generateSamples.r")
 source("src/simulation-study/fit.ignorable.r")
 source("src/simulation-study/fit.parametric.r")
 
+flog.appender(appender.file(paste0('./log/', format(Sys.time(), "%Y-%m-%d_%Hh%Mm%Ss"), ".log")))
 flog.threshold('trace')
 df <- generateSamples(samples = 1, participants = 10000)
 
