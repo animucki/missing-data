@@ -108,8 +108,8 @@ fit.parametric <- function(d) {
   
   flog.debug(paste0('Sample ', key, ' done.'))
   
-  out <- c(pars$beta, pars$sigma.b, pars$sigma, 2*diag(solve(hh)) )
-  names(out) <- c('intercept', 'time', 'treatment', 'sigma.b', 'sigma',
+  out <- c(key, pars$beta, pars$sigma.b, pars$sigma, 2*diag(solve(hh)) )
+  names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
                   'se.intercept', 'se.time', 'se.treatment', 'se.sigma.b', 'se.sigma')
   as.data.frame(as.list(out))
 }
