@@ -37,8 +37,7 @@ fit.parametric <- function(d) {
     
     flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),', normChange = ', format(sum( (previousPars-currentPars)^2 ), digits = 4)) )
     
-    # Stochastic step
-    #once done: scan for dPredicted usages
+    # Monte Carlo step
     for (mc in 1:mcSamples) {
       dPredictedList[[mc]]  <- d %>% mutate(
         bDraw = rep(rnorm(n=length(unique(d$subject)), sd=pars$sigma.b), each = nTimePoints),
@@ -70,8 +69,6 @@ fit.parametric <- function(d) {
                        })
       
       out <- -2*mean(unlist(temp))
-      
-      # if( !is.finite(out) ) print(unlist(temp)[!is.finite(unlist(temp))])
       
       out
       
