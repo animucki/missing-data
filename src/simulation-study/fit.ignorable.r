@@ -1,4 +1,5 @@
-fit.ignorable <- function(d, key) {
+fit.ignorable <- function(d) {
+  key <- d$sample[1]
   flog.debug(paste0('Fitting ignorable model to sample ', key))
   
   m <- lmer(y ~ (1|subject) + time + treatment,

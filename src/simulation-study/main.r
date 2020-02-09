@@ -26,16 +26,16 @@ df <- generateSamples(samples = 8, participants = 10000)
 res <- list()
 
 flog.info('Fitting ignorable model to MAR scenario...')
-res[[1]] <- df %>% mutate(y=yMAR) %>% group_by(sample) %>% group_modify(fit.ignorable) %>% mutate(model='ignorable', scenario='MAR')
+res[[1]] <- df %>% mutate(y=yMAR) %>% group_split(sample) %>% lapply(fit.ignorable) %>% bind_rows %>% mutate(model='ignorable', scenario='MAR')
 
 flog.info('Fitting ignorable model to MNAR scenario...')
-res[[2]] <- df %>% mutate(y=yMNAR) %>% group_by(sample) %>% group_modify(fit.ignorable) %>% mutate(model='ignorable', scenario='MNAR')
+res[[2]] <- df %>% mutate(y=yMNAR) %>% group_split(sample) %>% lapply(fit.ignorable) %>% bind_rows %>% mutate(model='ignorable', scenario='MNAR')
 
-flog.info('Fitting parametric model to MAR scenario...')
-res[[3]] <- df %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.parametric) %>% reduce(full_join) %>% mutate(model='parametric', scenario='MAR') 
+flog.info('Fitting shared parameter model to MAR scenario...')
+res[[3]] <- df %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.parametric) %>% bind_rows %>% mutate(model='parametric', scenario='MAR')
 
-flog.info('Fitting parametric model to MNAR scenario...')
-res[[4]] <- df %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% mclapply(fit.parametric) %>% reduce(full_join) %>% mutate(model='parametric', scenario='MNAR') 
+flog.info('Fitting shared parameter model to MNAR scenario...')
+res[[4]] <- df %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% mclapply(fit.parametric) %>% bind_rows %>% mutate(model='parametric', scenario='MNAR')
 
 result <- bind_rows(res)
 
