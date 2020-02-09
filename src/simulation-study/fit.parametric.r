@@ -1,4 +1,6 @@
-fit.parametric <- function(d, key) {
+fit.parametric <- function(d) {
+  key <- as.integer(d$sample[1])
+  set.seed(1410L + key)
   flog.debug(paste0('Fitting parametric model to sample ', key))
   
   nTimePoints <- d %>% group_by(subject) %>% summarize(n=n()) %>% pull(n) %>% max
@@ -33,7 +35,7 @@ fit.parametric <- function(d, key) {
          coalesce(sum( (previousPars-currentPars)^2 ), Inf) > 1e-3 && 
          iter <= 100) {
     
-    flog.trace(paste0('SEM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', toString(pars),', normChange = ', sum( (previousPars-currentPars)^2 )) )
+    flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),', normChange = ', format(sum( (previousPars-currentPars)^2 ), digits = 4)) )
     
     # Stochastic step
     #once done: scan for dPredicted usages
@@ -79,8 +81,8 @@ fit.parametric <- function(d, key) {
                  method = 'L-BFGS-B',
                  lower = c(rep(-Inf, 7), 1e-4, 1e-4),
                  upper = Inf,
-                 hessian = FALSE,
-                 control = list(trace=1, REPORT=1))
+                 hessian = FALSE
+                 )
     
     if(res$convergence > 0) flog.error(paste('Parametric model likelihood did not converge, code',res$convergence))
     
@@ -98,13 +100,13 @@ fit.parametric <- function(d, key) {
     iter <- iter + 1
   }
   
-  flog.trace(paste0('SEM result: pars = ', toString(pars),', normChange = ', sum( (previousPars-currentPars)^2 )) )
+  flog.trace(paste0('Sample ', key, ': EM result: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','), ' , deviance = ', format(currentMinus2LL, digits=7) ) )
   
   flog.trace('Computing Hessian...')
   x0 <- unlist(pars)
   hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])), x0[c(1,2,3,8,9)])
   
-  print(hh)
+  flog.debug(paste0('Sample ', key, ' done.'))
   
   out <- c(pars$beta, pars$sigma.b, pars$sigma, 2*diag(solve(hh)) )
   names(out) <- c('intercept', 'time', 'treatment', 'sigma.b', 'sigma',

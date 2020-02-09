@@ -19,7 +19,7 @@ generateSamples <- function(samples = 10,
                             gamma = 1.5,
                             delta = 0.5) {
   
-  flog.info(paste0('Generating ', samples, '...'))
+  flog.info(paste0('Generating ', samples, ', samples...'))
   
   flog.debug('Arguments:')
   flog.debug(str(as.list(match.call())[-1], no.list = F))
