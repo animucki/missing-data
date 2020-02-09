@@ -15,7 +15,7 @@ fit.ignorable <- function(d, key) {
   pars <- vv$sdcor
   names(pars) <- c('sigma.b','sigma')
   hh <- hessian(dd.ML, pars)
-  vv <- diag(2*solve(hh))
+  vv <- sqrt(diag(2*solve(hh)))
   names(vv) <- c('se.sigma.b','se.sigma')
   
   as.data.frame(as.list(c(beta, pars, seFixed, vv)))
