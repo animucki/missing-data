@@ -63,9 +63,20 @@ fit.parametric <- function(d) {
       
       temp <- lapply(dPredictedList, 
                        function(dPredicted) {
-                         sum(dnorm(dPredicted$yPred - beta[1] - Xtemp %*% beta[c(2,3)] - dPredicted$bDraw, sd = sigma, log = T)+
-                           dbinom( dPredicted$r, size = 1, prob = plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dPredicted$bDraw ), log = T)) +
-                           sum(dnorm(dPredicted$bDraw[seq(1, nrow(dPredicted), by = nTimePoints)], sd = sigma.b, log = T))
+                         sum(dnorm(
+                           x=dPredicted$yPred, 
+                           mean=beta[1] + Xtemp %*% beta[c(2,3)] + dPredicted$bDraw, 
+                           sd = sigma, 
+                           log = T)+
+                           dbinom( 
+                             x=dPredicted$r, 
+                             size = 1, 
+                             prob = plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dPredicted$bDraw ),
+                             log = T)) +
+                           sum(dnorm(
+                             x=dPredicted$bDraw[seq(1, nrow(dPredicted), by = nTimePoints)], 
+                             sd = sigma.b, 
+                             log = T))
                        })
       
       out <- -2*mean(unlist(temp))
@@ -74,8 +85,43 @@ fit.parametric <- function(d) {
       
     }
     
-    res <- optim(unlist(pars, use.names = F), minusTwoLogLikelihood,
+    minusTwoScore <- function(x) {
+      
+      if(length(x) != 9) flog.error('Incorrect input in score for parametric model')
+      
+      beta <- x[1:3]
+      alpha <- x[4:6]
+      gamma <- x[7]
+      sigma.b <- x[8]
+      sigma <- x[9]
+      
+      temp <- lapply(dPredictedList, 
+                     function(dPredicted) {
+                       normalResidual <- dPredicted$yPred - beta[1] - Xtemp %*% beta[c(2,3)] - dPredicted$bDraw
+                       bernoulliResidual <- dPredicted$r - plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dPredicted$bDraw )
+                       data.frame(
+                         grad.beta1 = sum( normalResidual )/sigma^2,
+                         grad.beta2 = sum( dPredicted$time *  normalResidual )/sigma^2,
+                         grad.beta3 = sum( dPredicted$treatment * normalResidual )/sigma^2,
+                         grad.alpha1 = sum( bernoulliResidual ),
+                         grad.alpha2 = sum( dPredicted$time * bernoulliResidual ),
+                         grad.alpha3 = sum( dPredicted$treatment * bernoulliResidual ),
+                         grad.gamma = sum( dPredicted$bDraw * bernoulliResidual ),
+                         grad.sigma.b = sum( (dPredicted$bDraw^2 - sigma.b^2 )/sigma.b^3),
+                         grad.sigma = sum( normalResidual^2 - sigma^2 )/sigma^3)
+                     }) %>% bind_rows %>% summarize_all(mean)
+      
+      out <- -2*unlist(temp, use.names = F)
+      
+      out
+      
+    }
+    
+    res <- optim(par=unlist(pars, use.names = F), 
+                 fn=minusTwoLogLikelihood,
+                 gr=minusTwoScore,
                  method = 'L-BFGS-B',
+                 control = list(factr=1e9),
                  lower = c(rep(-Inf, 7), 1e-4, 1e-4),
                  upper = Inf,
                  hessian = FALSE
@@ -100,7 +146,10 @@ fit.parametric <- function(d) {
   flog.trace(paste0('Sample ', key, ': EM result for spm: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','), ' , deviance = ', format(currentMinus2LL, digits=7) ) )
   
   x0 <- unlist(pars)
-  hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])), x0[c(1,2,3,8,9)])
+  # hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])), x0[c(1,2,3,8,9)])
+  hh <- optimHess(par = x0[c(1,2,3,8,9)], 
+                  fn = function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])),
+                  gr = function(x) minusTwoScore(c(x[1:3], x0[4:7], x[4:5])))
   
   out <- c(key, pars$beta, pars$sigma.b, pars$sigma, 2*diag(solve(hh)) )
   names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',

@@ -14,7 +14,7 @@ generateSamples <- function(samples = 10,
                             timePoints = seq(0, 3, len=5),
                             beta = c(-1.2, 0.5, -1.5),
                             sigma = sqrt(0.5),
-                            sigma.b = sqrt(2),
+                            sigma.b = sqrt(0.8),
                             alpha = c(1.6, -0.5, 2.5),
                             gamma = 1.5,
                             delta = 1) {
