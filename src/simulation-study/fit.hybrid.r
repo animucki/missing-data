@@ -75,7 +75,8 @@ fit.hybrid <- function(d) {
                       sum(
                         dnorm( #outcome
                           x = dPredicted$yPred, 
-                          mean = beta[1] + Xtemp %*% beta[c(2,3)] + dPredicted$bDraw + dPredicted$mcDraw, 
+                          mean = beta[1] + Xtemp %*% beta[c(2,3)] + dPredicted$bDraw + 
+                            outer(dPredicted$cDraw, 1:nClasses, function(x,y) as.integer(x==y)) %*% c(0, mu), 
                           sd = sigma, 
                           log = T) +
                           dbinom( #missingness
