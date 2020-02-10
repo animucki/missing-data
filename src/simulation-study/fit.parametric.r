@@ -97,13 +97,10 @@ fit.parametric <- function(d) {
     iter <- iter + 1
   }
   
-  flog.trace(paste0('Sample ', key, ': EM result: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','), ' , deviance = ', format(currentMinus2LL, digits=7) ) )
+  flog.trace(paste0('Sample ', key, ': EM result for spm: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','), ' , deviance = ', format(currentMinus2LL, digits=7) ) )
   
-  flog.trace('Computing Hessian...')
   x0 <- unlist(pars)
   hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])), x0[c(1,2,3,8,9)])
-  
-  flog.debug(paste0('Sample ', key, ' done.'))
   
   out <- c(key, pars$beta, pars$sigma.b, pars$sigma, 2*diag(solve(hh)) )
   names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
