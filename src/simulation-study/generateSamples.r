@@ -17,9 +17,9 @@ generateSamples <- function(samples = 10,
                             sigma.b = sqrt(2),
                             alpha = c(1.6, -0.5, 2.5),
                             gamma = 1.5,
-                            delta = 0.5) {
+                            delta = 1) {
   
-  flog.info(paste0('Generating ', samples, ', samples...'))
+  flog.info(paste0('Generating ', samples, ' samples...'))
   
   flog.debug('Arguments:')
   flog.debug(str(as.list(match.call())[-1], no.list = F))
@@ -31,7 +31,7 @@ generateSamples <- function(samples = 10,
   df <- data.frame(
     sample = as.factor(rep(1:samples, each = participants)),
     subject = as.factor(rep(1:participants, times = samples)),
-    classIntercept = as.vector(c(-2,-1,1,2) %*% rmultinom(n = samples*participants, size=1, prob=c(1,2,2,1))),
+    classIntercept = rmultinomial(n = samples*participants, size=1, prob=c(3,4,2)) %*% c(-2,0,3),
     randIntercept = runif(n = samples*participants, min = -sqrt(3)*sigma.b, max = sqrt(3)*sigma.b),
     treatment = c(0,1)
   ) %>%
