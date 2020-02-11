@@ -35,18 +35,19 @@ fit.hybrid <- function(d) {
   minusTwoLogLikelihood <- NA
   
   while (coalesce(abs(previousMinus2LL-currentMinus2LL), Inf) > 1e-6 && 
-         coalesce(sum( (previousPars-currentPars)^2 ), Inf) > 1e-3 && 
+         coalesce(sum( (previousPars-currentPars)^2 ), Inf) > 1e-4 && 
          iter <= 100) {
     
     flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),', normChange = ', format(sum( (previousPars-currentPars)^2 ), digits = 4)) )
     
     # Stochastic step
-    #once done: scan for dPredicted usages
     for (mc in 1:mcSamples) {
-      dPredictedList[[mc]]  <- d %>% mutate(
+      #cDrawMat, then assign to list object
+      dPredictedList[[mc]] <- list(cDrawMat=NULL, data=NULL)
+      dPredictedList[[mc]]$cDrawMat <- rmultinomial(n=length(unique(d$subject)), size=1, prob = softmax(c(0, pars$eta)))
+      dPredictedList[[mc]]$data <- d %>% mutate(
         bDraw = rep(rnorm(n=length(unique(d$subject)), sd=pars$sigma.b), each = nTimePoints),
-        cDraw = rep(as.integer(rmultinomial(n=length(unique(d$subject)), size=1, prob = softmax(c(0, pars$eta))) %*% 1:nClasses), each = nTimePoints),
-        mcDraw = outer(cDraw, 1:nClasses, function(x,y) as.integer(x==y)) %*% c(0, pars$mu),
+        mcDraw = rep(dPredictedList[[mc]]$cDrawMat %*% c(0, pars$mu), each = nTimePoints),
         eDraw = rnorm(n=nrow(d), sd=pars$sigma),
         yPred = case_when(
           r == 1 ~ y,
@@ -59,7 +60,7 @@ fit.hybrid <- function(d) {
     # Minimization step
     minusTwoLogLikelihood <- function(x) {
       
-      if(length(x) != 9 + 2*(nClasses-1)) flog.error('Incorrect input in logLikelihood for parametric model')
+      if(length(x) != 9 + 2*(nClasses-1)) flog.error('Incorrect input in logLikelihood for hybrid model')
       
       beta <- x[1:3]
       alpha <- x[4:6]
@@ -70,30 +71,29 @@ fit.hybrid <- function(d) {
       eta <- x[9 + (nClasses-1) + 1:(nClasses-1)]
       
       tmp <- lapply(dPredictedList, 
-                    function(dPredicted) {
+                    function(dObj) {
                       #first, add up observation-level loglikelihood contributions
                       sum(
                         dnorm( #outcome
-                          x = dPredicted$yPred, 
-                          mean = beta[1] + Xtemp %*% beta[c(2,3)] + dPredicted$bDraw + 
-                            outer(dPredicted$cDraw, 1:nClasses, function(x,y) as.integer(x==y)) %*% c(0, mu), 
+                          x = dObj$data$yPred, 
+                          mean = beta[1] + Xtemp %*% beta[c(2,3)] + dObj$data$bDraw + rep(dObj$cDrawMat %*% c(0, mu), each = nTimePoints), 
                           sd = sigma, 
                           log = T) +
                           dbinom( #missingness
-                            x= dPredicted$r, 
+                            x= dObj$data$r, 
                             size = 1, 
-                            prob = plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dPredicted$bDraw ), 
+                            prob = plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dObj$data$bDraw ), 
                             log = T)
                       ) +  
                         #second, add up subject-level contributions ()
                         sum(
                           dnorm( #(normal) random intercept
-                            x = dPredicted$bDraw[seq(1, nrow(dPredicted), by = nTimePoints)], 
+                            x = dObj$data$bDraw[seq(1, nrow(dObj$data), by = nTimePoints)], 
                             sd = sigma.b, 
                             log = T) +
                             +
                             dmultinomial( #class-specific intercept
-                              x = outer(dPredicted$cDraw, 1:nClasses, function(x,y) as.integer(x==y)),
+                              x = dObj$cDrawMat,
                               size = 1,
                               prob = softmax(c(0,eta)),
                               log = T)
@@ -163,7 +163,7 @@ fit.hybrid <- function(d) {
                  fn=minusTwoLogLikelihood,
                  gr=minusTwoScore,
                  method = 'L-BFGS-B',
-                 control = list(trace=1, REPORT=1),
+                 control = list(trace=1, REPORT=1, factr=1e9),
                  lower = c(rep(-Inf, 7), 1e-4, 1e-4, rep(-Inf, 2*(nClasses-1))),
                  upper = Inf,
                  hessian = FALSE
@@ -183,7 +183,7 @@ fit.hybrid <- function(d) {
     previousPars <- currentPars
     currentMinus2LL <- res$value
     currentPars <- unlist(pars)
-    mcSamples <- min(mcSamples * 5, 100)
+    mcSamples <- min(mcSamples * 5, 1e8 %/% nrow(d))
     iter <- iter + 1
   }
   

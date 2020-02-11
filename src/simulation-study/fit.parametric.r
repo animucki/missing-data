@@ -32,7 +32,7 @@ fit.parametric <- function(d) {
   minusTwoLogLikelihood <- NA
   
   while (coalesce(abs(previousMinus2LL-currentMinus2LL), Inf) > 1e-6 && 
-         coalesce(sum( (previousPars-currentPars)^2 ), Inf) > 1e-3 && 
+         coalesce(sum( (previousPars-currentPars)^2 ), Inf) > 1e-4 && 
          iter <= 100) {
     
     flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),', normChange = ', format(sum( (previousPars-currentPars)^2 ), digits = 4)) )
@@ -139,7 +139,7 @@ fit.parametric <- function(d) {
     previousPars <- currentPars
     currentMinus2LL <- res$value
     currentPars <- unlist(pars)
-    mcSamples <- min(mcSamples * 5, 100)
+    mcSamples <- min(mcSamples * 5, 1e8 %/% nrow(d) )
     iter <- iter + 1
   }
   
@@ -149,7 +149,7 @@ fit.parametric <- function(d) {
   # hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])), x0[c(1,2,3,8,9)])
   hh <- optimHess(par = x0[c(1,2,3,8,9)], 
                   fn = function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])),
-                  gr = function(x) minusTwoScore(c(x[1:3], x0[4:7], x[4:5])))
+                  gr = function(x) minusTwoScore(c(x[1:3], x0[4:7], x[4:5]))[c(1,2,3,8,9)])
   
   out <- c(key, pars$beta, pars$sigma.b, pars$sigma, 2*diag(solve(hh)) )
   names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
