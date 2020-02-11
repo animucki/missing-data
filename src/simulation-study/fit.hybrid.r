@@ -108,7 +108,60 @@ fit.hybrid <- function(d) {
       
     }
     
-    res <- optim(unlist(pars, use.names = F), minusTwoLogLikelihood,
+    minusTwoScore <- function(x) {
+      
+      if(length(x) != 9 + 2*(nClasses-1)) flog.error('Incorrect input in logLikelihood for parametric model')
+      
+      beta <- x[1:3]
+      alpha <- x[4:6]
+      gamma <- x[7]
+      sigma.b <- x[8]
+      sigma <- x[9]
+      mu <- x[9 + 1:(nClasses-1)]
+      eta <- x[9 + (nClasses-1) + 1:(nClasses-1)]
+      
+      tmp <- lapply(dPredictedList, 
+                    function(dPredicted) {
+                      #first, add up observation-level loglikelihood contributions
+                      normalResidual <- dPredicted$yPred - beta[1] - Xtemp %*% beta[c(2,3)] - 
+                        dPredicted$bDraw - outer(dPredicted$cDraw, 1:nClasses, function(x,y) as.integer(x==y)) %*% c(0, mu)
+                      bernoulliResidual <- dPredicted$r - plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dPredicted$bDraw )
+                      #class residuals?
+
+                            # dmultinomial( #class-specific intercept
+                            #   x = outer(dPredicted$cDraw, 1:nClasses, function(x,y) as.integer(x==y)),
+                            #   size = 1,
+                            #   prob = softmax(c(0,eta)),
+                            #   log = T)
+                      
+                      grad <- data.frame(
+                         grad.beta1 = sum( normalResidual )/sigma^2,
+                         grad.beta2 = sum( dPredicted$time * normalResidual )/sigma^2,
+                         grad.beta3 = sum( dPredicted$treatment * normalResidual )/sigma^2,
+                         grad.alpha1 = sum( bernoulliResidual ),
+                         grad.alpha2 = sum( dPredicted$time * bernoulliResidual ),
+                         grad.alpha3 = sum( dPredicted$treatment * bernoulliResidual ),
+                         grad.gamma = sum( dPredicted$bDraw * bernoulliResidual ),
+                         grad.sigma.b = sum( (dPredicted$bDraw^2 - sigma.b^2 )/sigma.b^3),
+                         grad.sigma = sum( normalResidual^2 - sigma^2 )/sigma^3)
+                      
+                      for(c in 2:nClasses) {
+                        grad[[paste0('grad.mu',c)]] <- sum( normalResidual * (dPredicted$cDraw==c) )/sigma^2
+                        grad[[paste0('grad.eta',c)]] <- sum( (dPredicted$cDraw==c) * softmax(c(0,eta))[c] )
+                      }
+                    }) %>% bind_rows %>% summarize_all(mean)
+      
+      out <- -2*mean(unlist(tmp))
+      
+      # if( !is.finite(out) ) print(unlist(tmp)[!is.finite(unlist(tmp))])
+      
+      out
+      
+    }
+
+    res <- optim(par=unlist(pars, use.names = F), 
+                 fn=minusTwoLogLikelihood,
+                 gr=minusTwoScore,
                  method = 'L-BFGS-B',
                  control = list(trace=1, REPORT=1),
                  lower = c(rep(-Inf, 7), 1e-4, 1e-4, rep(-Inf, 2*(nClasses-1))),
@@ -137,8 +190,12 @@ fit.hybrid <- function(d) {
   flog.trace(paste0('Sample ', key, ': EM result for spm+class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','), ' , deviance = ', format(currentMinus2LL, digits=7) ) )
   
   x0 <- unlist(pars)
-  hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5], x0[9+ 1:(2*nClasses-2)])), x0[c(1,2,3,8,9)])
-  
+  # hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5], x0[9+ 1:(2*nClasses-2)])), x0[c(1,2,3,8,9)])
+  hh <- optimHess(par = x0[c(1,2,3,8,9)],
+                  fn = function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5], x0[9+ 1:(2*nClasses-2)])),
+                  gr = function(x) minusTwoScore(c(x[1:3], x0[4:7], x[4:5], x0[9+ 1:(2*nClasses-2)]))[c(1,2,3,8,9)]
+                  )
+
   out <- c(key, pars$beta, pars$sigma.b, pars$sigma, 2*diag(solve(hh)) )
   names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
                   'se.intercept', 'se.time', 'se.treatment', 'se.sigma.b', 'se.sigma')
