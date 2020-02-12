@@ -175,7 +175,7 @@ fit.hybrid <- function(d) {
     previousPars <- currentPars
     currentMinus2LL <- res$value
     currentPars <- unlist(pars)
-    mcSamples <- min(mcSamples * 5, 1e8 %/% nrow(d))
+    mcSamples <- min(mcSamples * 5, 1e7 %/% nrow(d))
     iter <- iter + 1
   }
   
