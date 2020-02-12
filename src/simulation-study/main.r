@@ -28,9 +28,9 @@ df1 <- generateSamples(samples = 1, participants = 10000)
 res <- list()
 
 flog.info('Testing parametric method with analytic derivatives...')
-res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% lapply(fit.parametric) %>% bind_rows
+# res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% lapply(fit.parametric) %>% bind_rows
 
-flog.info('Testing hybrid method...')
+flog.info('Testing hybrid method with analytic derivatives...')
 res[[2]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% lapply(fit.hybrid) %>% bind_rows
 
 flog.info('Fitting models to MAR scenario...')

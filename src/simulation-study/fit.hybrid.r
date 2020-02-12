@@ -102,8 +102,6 @@ fit.hybrid <- function(d) {
       
       out <- -2*mean(unlist(tmp))
       
-      # if( !is.finite(out) ) print(unlist(tmp)[!is.finite(unlist(tmp))])
-      
       out
       
     }
@@ -120,42 +118,36 @@ fit.hybrid <- function(d) {
       mu <- x[9 + 1:(nClasses-1)]
       eta <- x[9 + (nClasses-1) + 1:(nClasses-1)]
       
-      tmp <- lapply(dPredictedList, 
-                    function(dPredicted) {
+      out <- lapply(dPredictedList, 
+                    function(dObj) {
                       #first, add up observation-level loglikelihood contributions
-                      normalResidual <- dPredicted$yPred - beta[1] - Xtemp %*% beta[c(2,3)] - 
-                        dPredicted$bDraw - outer(dPredicted$cDraw, 1:nClasses, function(x,y) as.integer(x==y)) %*% c(0, mu)
-                      bernoulliResidual <- dPredicted$r - plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dPredicted$bDraw )
-                      #class residuals?
-
-                            # dmultinomial( #class-specific intercept
-                            #   x = outer(dPredicted$cDraw, 1:nClasses, function(x,y) as.integer(x==y)),
-                            #   size = 1,
-                            #   prob = softmax(c(0,eta)),
-                            #   log = T)
+                      normalResidual <- dObj$data$yPred - beta[1] - Xtemp %*% beta[c(2,3)] - 
+                        dObj$data$bDraw - rep(dObj$cDrawMat %*% c(0, mu), each = nTimePoints)
+                      bernoulliResidual <- dObj$data$r - plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dObj$data$bDraw )
                       
                       grad <- data.frame(
                          grad.beta1 = sum( normalResidual )/sigma^2,
-                         grad.beta2 = sum( dPredicted$time * normalResidual )/sigma^2,
-                         grad.beta3 = sum( dPredicted$treatment * normalResidual )/sigma^2,
+                         grad.beta2 = sum( dObj$data$time * normalResidual )/sigma^2,
+                         grad.beta3 = sum( dObj$data$treatment * normalResidual )/sigma^2,
                          grad.alpha1 = sum( bernoulliResidual ),
-                         grad.alpha2 = sum( dPredicted$time * bernoulliResidual ),
-                         grad.alpha3 = sum( dPredicted$treatment * bernoulliResidual ),
-                         grad.gamma = sum( dPredicted$bDraw * bernoulliResidual ),
-                         grad.sigma.b = sum( (dPredicted$bDraw^2 - sigma.b^2 )/sigma.b^3),
+                         grad.alpha2 = sum( dObj$data$time * bernoulliResidual ),
+                         grad.alpha3 = sum( dObj$data$treatment * bernoulliResidual ),
+                         grad.gamma = sum( dObj$data$bDraw * bernoulliResidual ),
+                         grad.sigma.b = sum( (dObj$data$bDraw[seq(1, nrow(dObj$data), by = nTimePoints)]^2 - sigma.b^2 )/sigma.b^3),
                          grad.sigma = sum( normalResidual^2 - sigma^2 )/sigma^3)
                       
-                      for(c in 2:nClasses) {
-                        grad[[paste0('grad.mu',c)]] <- sum( normalResidual * (dPredicted$cDraw==c) )/sigma^2
-                        grad[[paste0('grad.eta',c)]] <- sum( (dPredicted$cDraw==c) * softmax(c(0,eta))[c] )
+                      #two separate loops ensure the correct order in the output!
+                      for(k in 2:nClasses) {
+                        grad[[paste0('grad.mu',k)]] <- sum( normalResidual * rep(dObj$cDrawMat[,k], each = nTimePoints) )/sigma^2
                       }
-                    }) %>% bind_rows %>% summarize_all(mean)
+                      
+                      for(k in 2:nClasses) {
+                        grad[[paste0('grad.eta',k)]] <- sum( dObj$cDrawMat[,k] - softmax(c(0,eta))[k] )
+                      }
+                      return(grad)
+                    }) %>% bind_rows %>% summarize_all(mean) %>% unlist
       
-      out <- -2*mean(unlist(tmp))
-      
-      # if( !is.finite(out) ) print(unlist(tmp)[!is.finite(unlist(tmp))])
-      
-      out
+      -2*out
       
     }
 
@@ -163,7 +155,7 @@ fit.hybrid <- function(d) {
                  fn=minusTwoLogLikelihood,
                  gr=minusTwoScore,
                  method = 'L-BFGS-B',
-                 control = list(trace=1, REPORT=1, factr=1e9),
+                 #control = list(trace=3, REPORT=1),
                  lower = c(rep(-Inf, 7), 1e-4, 1e-4, rep(-Inf, 2*(nClasses-1))),
                  upper = Inf,
                  hessian = FALSE

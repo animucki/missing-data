@@ -107,7 +107,7 @@ fit.parametric <- function(d) {
                          grad.alpha2 = sum( dPredicted$time * bernoulliResidual ),
                          grad.alpha3 = sum( dPredicted$treatment * bernoulliResidual ),
                          grad.gamma = sum( dPredicted$bDraw * bernoulliResidual ),
-                         grad.sigma.b = sum( (dPredicted$bDraw^2 - sigma.b^2 )/sigma.b^3),
+                         grad.sigma.b = sum( (dPredicted$bDraw[seq(1, nrow(dPredicted), by = nTimePoints)]^2 - sigma.b^2 )/sigma.b^3),
                          grad.sigma = sum( normalResidual^2 - sigma^2 )/sigma^3)
                      }) %>% bind_rows %>% summarize_all(mean)
       
