@@ -28,14 +28,14 @@ fit.hybrid <- function(d) {
   
   iter <- 1
   
-  mcSamples <- 1
+  mcSamples <- 8
   dPredictedList <- list()
   Xtemp <- NA
   
   minusTwoLogLikelihood <- NA
   
   while (coalesce(abs(previousMinus2LL-currentMinus2LL), Inf) > 1e-6 && 
-         coalesce(sum( (previousPars-currentPars)^2 ), Inf) > 1e-4 && 
+         coalesce(mean( (previousPars-currentPars)^2 ), Inf) > 1e-4 && 
          iter <= 100) {
     
     flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),', normChange = ', format(sum( (previousPars-currentPars)^2 ), digits = 4)) )
@@ -175,7 +175,7 @@ fit.hybrid <- function(d) {
     previousPars <- currentPars
     currentMinus2LL <- res$value
     currentPars <- unlist(pars)
-    mcSamples <- min(mcSamples * 5, 1e7 %/% nrow(d))
+    mcSamples <- as.integer(min(mcSamples * log(10)/log(2), max(1e7 / nrow(d), 250)))
     iter <- iter + 1
   }
   
