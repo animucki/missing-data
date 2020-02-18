@@ -12,6 +12,9 @@ library(tidyverse)
 
 options(mc.cores = parallel::detectCores())
 
+# flog.appender(appender.file(paste0('./log/', format(Sys.time(), "%Y-%m-%d_%Hh%Mm%Ss"), ".log")))
+flog.threshold('trace')
+
 flog.info('Sourcing functions...')
 source("src/simulation-study/utils.r")
 source("src/simulation-study/generateSamples.r")
@@ -19,8 +22,6 @@ source("src/simulation-study/fit.ignorable.r")
 source("src/simulation-study/fit.parametric.r")
 source("src/simulation-study/fit.hybrid.r")
 
-#flog.appender(appender.file(paste0('./log/', format(Sys.time(), "%Y-%m-%d_%Hh%Mm%Ss"), ".log")))
-flog.threshold('trace')
 set.seed(666L)
 df1 <- generateSamples(samples = 1, participants = 10000)
 
