@@ -68,15 +68,19 @@ fit.parametric <- function(d) {
       
       temp <- lapply(dPredictedList, 
                        function(dPredicted) {
-                         sum(dmvnorm(
-                           x = matrix(dPredicted$yPred - beta[1] - Xtemp %*% beta[c(2,3)], ncol = nTimePoints, byrow = T),
-                           sigma = sigma.b^2 + sigma^2 * diag(nTimePoints),
-                           log = T
-                         ))+
-                           sum(dbinom( 
+                         sum(dnorm(
+                           x=dPredicted$yPred, 
+                           mean=beta[1] + Xtemp %*% beta[c(2,3)] + dPredicted$bDraw, 
+                           sd = sigma, 
+                           log = T)+
+                           dbinom( 
                              x=dPredicted$r, 
                              size = 1, 
                              prob = plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dPredicted$bDraw ),
+                             log = T)) +
+                           sum(dnorm(
+                             x=dPredicted$bDraw[seq(1, nrow(dPredicted), by = nTimePoints)], 
+                             sd = sigma.b, 
                              log = T))
                        })
       
@@ -98,35 +102,18 @@ fit.parametric <- function(d) {
       
       temp <- lapply(dPredictedList, 
                      function(dPredicted) {
-                       
-                       #Pre-calculation of various parts of the score
+                       normalResidual <- dPredicted$yPred - beta[1] - Xtemp %*% beta[c(2,3)] - dPredicted$bDraw
                        bernoulliResidual <- dPredicted$r - plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dPredicted$bDraw )
-                       invSigma <- solve(sigma.b^2 + sigma^2*diag(nTimePoints))
-                       e <- matrix(dPredicted$yPred - beta[1] - Xtemp %*% beta[c(2,3)], nrow = nTimePoints)
-                       invSigma.e <- as.vector(invSigma %*% e)
-                       
-                       tau <- matrix(0, nrow = nTimePoints, ncol = nTimePoints)
-                       grad.sigma.b <- 0
-                       grad.sigma <- 0
-                       for(i in 1:ncol(e)) {
-                         #Pre-calculation of common component of variance parameter score
-                         tau <- invSigma %*% (e[,i] %o% e[,i] - (sigma.b^2 + sigma^2*diag(nTimePoints))) %*% invSigma
-                         
-                         grad.sigma.b <- grad.sigma.b + sum(diag( tau %*% matrix(sigma.b, nrow=nTimePoints, ncol = nTimePoints)))
-                         grad.sigma <- grad.sigma + sum(diag( tau )) * sigma
-                       }
-                       
                        data.frame(
-                         grad.beta1 = sum( invSigma.e ),
-                         grad.beta2 = sum( dPredicted$time * invSigma.e),
-                         grad.beta3 = sum( dPredicted$treatment * invSigma.e),
+                         grad.beta1 = sum( normalResidual )/sigma^2,
+                         grad.beta2 = sum( dPredicted$time *  normalResidual )/sigma^2,
+                         grad.beta3 = sum( dPredicted$treatment * normalResidual )/sigma^2,
                          grad.alpha1 = sum( bernoulliResidual ),
                          grad.alpha2 = sum( dPredicted$time * bernoulliResidual ),
                          grad.alpha3 = sum( dPredicted$treatment * bernoulliResidual ),
                          grad.gamma = sum( dPredicted$bDraw * bernoulliResidual ),
-                         grad.sigma.b = grad.sigma.b,
-                         grad.sigma = grad.sigma
-                       )
+                         grad.sigma.b = sum( (dPredicted$bDraw[seq(1, nrow(dPredicted), by = nTimePoints)]^2 - sigma.b^2 )/sigma.b^3),
+                         grad.sigma = sum( normalResidual^2 - sigma^2 )/sigma^3)
                      }) %>% bind_rows %>% summarize_all(mean)
       
       out <- -2*unlist(temp, use.names = F)
@@ -135,7 +122,7 @@ fit.parametric <- function(d) {
       
     }
     
-    res <- optim(par=unlist(pars, use.names = F),
+    res <- optim(par=unlist(pars, use.names = F), 
                  fn=minusTwoLogLikelihood,
                  gr=minusTwoScore,
                  method = 'L-BFGS-B',
@@ -144,7 +131,7 @@ fit.parametric <- function(d) {
                  upper = Inf,
                  hessian = FALSE
                  )
-
+    
     if(res$convergence > 0) flog.error(paste('Parametric model likelihood did not converge, code',res$convergence))
     
     pars <- list(beta = res$par[1:3],
