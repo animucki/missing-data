@@ -40,7 +40,7 @@ fit.parametric2 <- function(d) {
         f=function(bi) {
           unlist(lapply(bi, function(bi) {
             prod(dnorm(
-              x=(di$y - bi - beta[1] - di$time * beta[2] - di$treatment * beta[3]),
+              x= di$y - bi - beta[1] - di$time * beta[2] - di$treatment * beta[3] ,
               sd = sigma
             ), na.rm = TRUE) *
               prod(dbinom(
@@ -77,7 +77,8 @@ fit.parametric2 <- function(d) {
                sigma.b = res$par[8],
                sigma = res$par[9])
   
-  flog.trace(paste0('Sample ', key, ': EM result for spm: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','), ' , deviance = ', format(res$value, digits=7)) )
+  flog.trace(paste0('Sample ', key, ': EM result for spm: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','),
+                    ', deviance = ', format(res$value, digits=7)) )
   
   x0 <- unlist(pars)
   hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])), x0[c(1,2,3,8,9)])
