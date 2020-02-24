@@ -1,4 +1,7 @@
+#Fit the shared-parameter model
 fit.parametric <- function(d) {
+  #IMPORTANT: this function assumes that the observations are ordered by time!!!
+  
   key <- as.integer(d$sample[1])
   set.seed(1410L + key)
   flog.debug(paste0('Fitting parametric model to sample ', key))
@@ -25,17 +28,19 @@ fit.parametric <- function(d) {
   
   iter <- 1
   
-  mcSamples <- 8
+  mcSamples <- 1
   dPredictedList <- list()
   Xtemp <- NA
   
   minusTwoLogLikelihood <- NA
   
-  while (coalesce(abs(previousMinus2LL-currentMinus2LL), Inf) > 1e-6 && 
-         coalesce(mean( (previousPars-currentPars)^2 ), Inf) > 1e-4 && 
+  while (coalesce(abs(currentMinus2LL-previousMinus2LL)/previousMinus2LL, Inf) > 1e-4 && 
+         # coalesce(mean( (previousPars-currentPars)^2 ), Inf) > 1e-5 &&
          iter <= 100) {
     
-    flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),', normChange = ', format(sum( (previousPars-currentPars)^2 ), digits = 4)) )
+    flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),
+                      ', normChange = ', format(sum( (previousPars-currentPars)^2 ), digits = 4),
+                      ', deviance = ', format(currentMinus2LL, digits=7) ))
     
     # Monte Carlo step
     for (mc in 1:mcSamples) {
@@ -139,7 +144,13 @@ fit.parametric <- function(d) {
     previousPars <- currentPars
     currentMinus2LL <- res$value
     currentPars <- unlist(pars)
-    mcSamples <- as.integer(min(mcSamples * log(10)/log(2), max(1e7 / nrow(d), 250)))
+    
+    if(iter < 5)
+    {
+      mcSamples <- iter
+    } else {
+      mcSamples <- as.integer(min(mcSamples * 1.5, max(1e7 / nrow(d), 250))) #increase the sample size slowly
+    }
     iter <- iter + 1
   }
   

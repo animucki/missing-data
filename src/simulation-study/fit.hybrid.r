@@ -1,3 +1,4 @@
+#Fit the class model of Lin, McCulloch, and Rosenheck, but with Bernoulli missingness
 fit.hybrid <- function(d) {
   key <- as.integer(d$sample[1])
   set.seed(4110L + key)
@@ -11,10 +12,11 @@ fit.hybrid <- function(d) {
   m <- lmer(y ~ (1|subject) + time + treatment,
             data=d, REML=F)
   pars <- list(beta = fixef(m),
-               alpha = c(0,0,0),
-               gamma = 0,
                sigma.b = as.data.frame(VarCorr(m))$sdcor[1],
                sigma = sigma(m),
+               alpha = c(0,0,0),
+               gamma = 0,
+               delta = 0,
                mu = rep(0, nClasses-1),
                eta = rep(0, nClasses-1)
   )
@@ -28,14 +30,14 @@ fit.hybrid <- function(d) {
   
   iter <- 1
   
-  mcSamples <- 8
+  mcSamples <- 1
   dPredictedList <- list()
   Xtemp <- NA
   
   minusTwoLogLikelihood <- NA
   
   while (coalesce(abs(previousMinus2LL-currentMinus2LL), Inf) > 1e-6 && 
-         coalesce(mean( (previousPars-currentPars)^2 ), Inf) > 1e-4 && 
+         coalesce(mean( (previousPars-currentPars)^2 ), Inf) > 1e-5 && 
          iter <= 100) {
     
     flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),', normChange = ', format(sum( (previousPars-currentPars)^2 ), digits = 4)) )
@@ -63,12 +65,13 @@ fit.hybrid <- function(d) {
       if(length(x) != 9 + 2*(nClasses-1)) flog.error('Incorrect input in logLikelihood for hybrid model')
       
       beta <- x[1:3]
-      alpha <- x[4:6]
-      gamma <- x[7]
-      sigma.b <- x[8]
-      sigma <- x[9]
-      mu <- x[9 + 1:(nClasses-1)]
-      eta <- x[9 + (nClasses-1) + 1:(nClasses-1)]
+      sigma.b <- x[4]
+      sigma <- x[5]
+      alpha <- x[6:8]
+      gamma <- x[9]
+      delta <- x[10]
+      mu <- x[10 + 1:(nClasses-1)]
+      eta <- x[10 + (nClasses-1) + 1:(nClasses-1)]
       
       tmp <- lapply(dPredictedList, 
                     function(dObj) {
@@ -82,7 +85,7 @@ fit.hybrid <- function(d) {
                           dbinom( #missingness
                             x= dObj$data$r, 
                             size = 1, 
-                            prob = plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dObj$data$bDraw ), 
+                            prob = plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dObj$data$bDraw + delta * rep(dObj$cDrawMat %*% c(0, mu), each = nTimePoints)), 
                             log = T)
                       ) +  
                         #second, add up subject-level contributions ()
@@ -175,7 +178,13 @@ fit.hybrid <- function(d) {
     previousPars <- currentPars
     currentMinus2LL <- res$value
     currentPars <- unlist(pars)
-    mcSamples <- as.integer(min(mcSamples * log(10)/log(2), max(1e7 / nrow(d), 250)))
+    
+    if(iter < 5)
+    {
+      mcSamples <- iter
+    } else {
+      mcSamples <- as.integer(min(mcSamples * 1.5, max(1e7 / nrow(d), 250))) #increase the sample size slowly
+    }
     iter <- iter + 1
   }
   

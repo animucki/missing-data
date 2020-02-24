@@ -1,6 +1,6 @@
 fit.class <- function(d) {
   key <- as.integer(d$sample[1])
-  set.seed(4110L + key)
+  set.seed(4114L + key)
   flog.debug(paste0('Fitting class model to sample ', key))
   
   nTimePoints <- d %>% group_by(subject) %>% summarize(n=n()) %>% pull(n) %>% max
@@ -17,7 +17,7 @@ fit.class <- function(d) {
                eta = rep(0, nClasses-1),
                gamma = c(0,1e-4), #parameters of the hazard function - the likelihood has a removable discontinuity at gamma[2]==0 so don't start too close to it
                llambda = rep(0, nClasses), #log(baseline hazard)
-               theta = 1 #variance of the frailty distribution
+               theta = 1e-3 #variance of the frailty distribution
   )
   
   #calculate tSince (time-to-event where the event is missingness)
@@ -35,7 +35,7 @@ fit.class <- function(d) {
   
   iter <- 1
   
-  mcSamples <- 8
+  mcSamples <- 1
   dPredictedList <- list()
   Xtemp <- NA
   
@@ -193,7 +193,7 @@ fit.class <- function(d) {
                  hessian = FALSE
     )
     
-    if(res$convergence > 0) flog.error(paste('class likelihood did not converge, code',res$convergence))
+    if(res$convergence > 0 & iter > 1) flog.error(paste('class likelihood did not converge, code',res$convergence))
     
     pars <- list(beta = res$par[1:3],
                  sigma.b = res$par[4],
@@ -209,7 +209,13 @@ fit.class <- function(d) {
     previousPars <- currentPars
     currentMinus2LL <- res$value
     currentPars <- unlist(pars)
-    mcSamples <- as.integer(min(mcSamples * log(10)/log(2), max(1e7 / nrow(d), 250)))
+    
+    if(iter < 5)
+    {
+      mcSamples <- iter
+    } else {
+      mcSamples <- as.integer(min(mcSamples * 1.5, max(1e7 / nrow(d), 250))) #increase the sample size slowly
+    }
     iter <- iter + 1
   }
   
