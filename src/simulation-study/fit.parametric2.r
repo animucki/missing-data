@@ -22,7 +22,7 @@ fit.parametric2 <- function(d) {
   integrationRule <- gaussHermiteData(20) # numerical rule for the Gauss-Hermite integral
   
   
-  flog.trace(paste0('Sample ', key, ': EM algorithm initial SPM pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ',')))
+  flog.trace(paste0('Sample ', key, ': EM algorithm initial spm pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ',')))
   
   # Formulate likelihood function
   minusTwoLogLikelihood <- function(x) {
