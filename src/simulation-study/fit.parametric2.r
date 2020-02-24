@@ -88,7 +88,7 @@ fit.parametric2 <- function(d) {
   names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
                   'se.intercept', 'se.time', 'se.treatment', 'se.sigma.b', 'se.sigma')
   
-  flog.trace(paste0('Sample ', key, ': complete, incl. Hessian.'))
+  flog.trace(paste0('Sample ', key, ': spm complete, incl. Hessian.'))
   
   as.data.frame(as.list(out))
 }
