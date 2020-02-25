@@ -3,7 +3,6 @@
 fit.parametric2 <- function(d) {
   
   key <- as.integer(d$sample[1])
-  set.seed(1410L + key)
   flog.debug(paste0('Fitting parametric model to sample ', key))
   
   nTimePoints <- d %>% group_by(subject) %>% summarize(n=n()) %>% pull(n) %>% max
@@ -21,8 +20,7 @@ fit.parametric2 <- function(d) {
   
   integrationRule <- gaussHermiteData(20) # numerical rule for the Gauss-Hermite integral
   
-  
-  flog.trace(paste0('Sample ', key, ': EM algorithm initial spm pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ',')))
+  flog.trace(paste0('Sample ', key, ': direct algorithm initial spm pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ',')))
   
   # Formulate likelihood function
   minusTwoLogLikelihood <- function(x) {
@@ -63,7 +61,7 @@ fit.parametric2 <- function(d) {
   res <- optim(par=unlist(pars, use.names = F),
                fn=minusTwoLogLikelihood,
                method = 'L-BFGS-B',
-               control = list(trace = 1),
+               control = list(trace = 1, maxit = 2000),
                lower = c(rep(-Inf, 7), 1e-4, 1e-4),
                upper = Inf,
                hessian = FALSE
@@ -77,12 +75,11 @@ fit.parametric2 <- function(d) {
                sigma.b = res$par[8],
                sigma = res$par[9])
   
-  flog.trace(paste0('Sample ', key, ': EM result for spm: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','),
+  flog.trace(paste0('Sample ', key, ': direct result for spm: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','),
                     ', deviance = ', format(res$value, digits=7)) )
   
   x0 <- unlist(pars)
   hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])), x0[c(1,2,3,8,9)])
-  # hh <- optimHess(par = x0[c(1,2,3,8,9)], fn = function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])))
   
   out <- c(key, pars$beta, pars$sigma.b, pars$sigma, 2*diag(solve(hh)) )
   names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
