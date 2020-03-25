@@ -1,5 +1,5 @@
 fit.ignorable <- function(d) {
-  key <- d$sample[1]
+  key <- as.integer(d$sample[1])
   flog.debug(paste0('Fitting ignorable model to sample ', key))
   
   m <- lmer(y ~ (1|subject) + time + treatment,
@@ -19,5 +19,5 @@ fit.ignorable <- function(d) {
   vv <- sqrt(diag(2*solve(hh)))
   names(vv) <- c('se.sigma.b','se.sigma')
   
-  as.data.frame(as.list(c(beta, pars, seFixed, vv)))
+  as.data.frame(as.list(c(key, beta, pars, seFixed, vv)))
 }
