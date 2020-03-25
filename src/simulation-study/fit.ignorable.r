@@ -19,5 +19,5 @@ fit.ignorable <- function(d) {
   vv <- sqrt(diag(2*solve(hh)))
   names(vv) <- c('se.sigma.b','se.sigma')
   
-  as.data.frame(as.list(c(key, beta, pars, seFixed, vv)))
+  as.data.frame(as.list(c(sample=key, beta, pars, seFixed, vv)))
 }

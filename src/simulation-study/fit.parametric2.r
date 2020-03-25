@@ -45,7 +45,7 @@ fit.parametric2 <- function(d) {
                 x = di$r,
                 size = 1,
                 prob = plogis(alpha[1] + di$time * alpha[2] + di$treatment * alpha[3] + gamma * bi)
-              ))
+              )[-seq(from=1, to=nrow(d), by=nTimePoints)])
           })) *
             dnorm(bi, sd=sigma.b) / exp(-bi^2) #the exponential factor is because fastGHquad multiplies f by exp(-bi^2)
         },
@@ -81,7 +81,7 @@ fit.parametric2 <- function(d) {
   x0 <- unlist(pars)
   hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])), x0[c(1,2,3,8,9)])
   
-  out <- c(key, pars$beta, pars$sigma.b, pars$sigma, 2*diag(solve(hh)) )
+  out <- c(key, pars$beta, pars$sigma.b, pars$sigma, sqrt(diag(2*solve(hh))) )
   names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
                   'se.intercept', 'se.time', 'se.treatment', 'se.sigma.b', 'se.sigma')
   
