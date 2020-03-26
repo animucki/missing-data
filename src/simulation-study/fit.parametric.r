@@ -100,9 +100,7 @@ fit.parametric <- function(d) {
                              x=dPredicted$r, 
                              size = 1, 
                              prob = plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dPredicted$bDraw ),
-                             log = T)[-seq(from = 1,
-                                           to = nrow(d),
-                                           by=nTimePoints)]) + #the seq(...) expression skips the baseline observations
+                             log = T)[-seq(from = 1, to = nrow(d), by=nTimePoints)]) + #the seq(...) expression skips the baseline observations
                            sum(dnorm(
                              x=dPredicted$bDraw[seq(1, nrow(dPredicted), by = nTimePoints)], 
                              sd = sigma.b, 
@@ -182,7 +180,7 @@ fit.parametric <- function(d) {
 
   }
   
-  flog.trace(paste0('Sample ', key, ': EM result for spm: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','), ', deviance = ', format(currentMinus2LL, digits=7) ) )
+  flog.trace(paste0('Sample ', key, ': EM result for spm: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')) )
   
   x0 <- unlist(pars)
   # hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])), x0[c(1,2,3,8,9)])

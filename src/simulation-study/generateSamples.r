@@ -14,7 +14,7 @@ generateSamples <- function(samples = 10,
                             timePoints = seq(0, 3, len=5),
                             beta = c(-1.2, 0.5, -1.5),
                             sigma = sqrt(0.5),
-                            sigma.b = sqrt(0.8),
+                            sigma.b = 0.5,
                             alpha = c(-1, -0.5, 2.5),
                             gamma = 1.5,
                             delta = 1) {
@@ -31,7 +31,7 @@ generateSamples <- function(samples = 10,
   df <- data.frame(
     sample = as.factor(rep(1:samples, each = participants)),
     subject = as.factor(rep(1:participants, times = samples)),
-    classIntercept = rmultinomial(n = samples*participants, size=1, prob=c(3,4,2)) %*% c(-2,0,3),
+    classIntercept = rmultinomial(n = samples*participants, size=1, prob=c(3,1,2)) %*% c(-2,0,3),
     randIntercept = runif(n = samples*participants, min = -sqrt(3)*sigma.b, max = sqrt(3)*sigma.b),
     treatment = c(0,1)
   ) %>%

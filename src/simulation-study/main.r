@@ -1,6 +1,7 @@
 # clear workspace
 rm(list = ls())
 
+library(armspp)
 library(fastGHQuad)
 library(futile.logger)
 library(lme4)
@@ -22,24 +23,24 @@ source("src/simulation-study/generateSamples.r")
 source("src/simulation-study/fit.ignorable.r")
 
 source("src/simulation-study/fit.parametric.r")
-source("src/simulation-study/fit.parametric2.r")
 
 source("src/simulation-study/fit.hybrid.r")
-source("src/simulation-study/fit.hybrid2.r")
 
 source("src/simulation-study/fit.class.r")
-source("src/simulation-study/fit.class2.r")
 
 set.seed(666L)
-df1 <- generateSamples(samples = 1, participants = 100)
+df1 <- generateSamples(samples = 1, participants = 1000)
 
 # ALL SAMPLES
 res <- list()
 
-flog.info('Testing new parametric model...')
+# res[[1]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% lapply(fit.ignorable) %>% bind_rows
+
+# df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% lapply(fit.parametric) %>% bind_rows
+
+flog.info('Testing hybrid model...')
 tic()
-# res[[1]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% lapply(fit.parametric2) %>% bind_rows
-res[[1]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% lapply(fit.hybrid2) %>% bind_rows
+res[[1]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% lapply(fit.hybrid) %>% bind_rows
 toc()
 
 # flog.info('Fitting models to MAR scenario...')
