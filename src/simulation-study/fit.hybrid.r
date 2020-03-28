@@ -27,7 +27,7 @@ fit.hybrid <- function(d) {
   
   iter <- 1
   
-  mcSamples <- 10
+  mcSamples <- 5
   
   minusTwoLogLikelihood <- NA
 
@@ -247,7 +247,7 @@ fit.hybrid <- function(d) {
     previousPars <- currentPars
     currentPars <- unlist(pars)
 
-    mcSamples <- as.integer(min(mcSamples * 1.5, max(1e7 / nrow(d), 250))) #increase the sample size slowly
+    mcSamples <- as.integer(min(mcSamples * 1.25, 250)) #increase the sample size slowly
     iter <- iter + 1
 
     #stopping criteria calculation
@@ -259,7 +259,7 @@ fit.hybrid <- function(d) {
     }
   }
   
-  flog.trace(paste0('Sample ', key, ': EM result for spm+class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','), ' , deviance = ', format(currentMinus2LL, digits=7) ) )
+  flog.trace(paste0('Sample ', key, ': EM result for spm+class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',') ) )
   
   x0 <- unlist(pars)
   hh <- optimHess(par = x0[c(1,2,3,9,10)],

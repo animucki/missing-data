@@ -167,7 +167,7 @@ fit.parametric <- function(d) {
     currentPars <- unlist(pars)
     
 
-    mcSamples <- as.integer(min(mcSamples * 1.5, max(1e7 / nrow(d), 250))) #increase the sample size slowly
+    mcSamples <- as.integer(min(mcSamples * 1.25, 250)) #increase the sample size slowly
     iter <- iter + 1
 
     #stopping criteria calculation
