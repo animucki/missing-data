@@ -28,7 +28,7 @@ source("src/simulation-study/fit.hybrid.r")
 source("src/simulation-study/fit.class.r")
 
 set.seed(666L)
-df1 <- generateSamples(samples = 1, participants = 1000)
+df1 <- generateSamples(samples = 100, participants = 200)
 
 # ALL SAMPLES
 res <- list()
@@ -37,16 +37,16 @@ res <- list()
 
 # df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% lapply(fit.parametric) %>% bind_rows
 
-flog.info('Testing hybrid model...')
-tic()
-res[[1]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% lapply(fit.hybrid) %>% bind_rows
-toc()
+flog.info('Testing class model...')
+# tic()
+# res[[1]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% lapply(fit.class) %>% bind_rows
+# toc()
 
-# flog.info('Fitting models to MAR scenario...')
-# res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.multiple) %>% bind_rows %>% mutate(scenario='MAR')
+flog.info('Fitting models to MAR scenario...')
+res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.multiple) %>% bind_rows %>% mutate(scenario='MAR')
 
-# flog.info('Fitting models to MNAR scenario...')
-# res[[2]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% mclapply(fit.multiple) %>% bind_rows %>% mutate(scenario='MNAR')
+flog.info('Fitting models to MNAR scenario...')
+res[[2]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% mclapply(fit.multiple) %>% bind_rows %>% mutate(scenario='MNAR')
 
 result <- bind_rows(res)
 
