@@ -18,9 +18,12 @@ fit.hybrid <- function(d) {
                delta = 0,
                sigma.b = as.data.frame(VarCorr(m))$sdcor[1],
                sigma = sigma(m),
-               mu = c(-2,3),
+               mu = rep(0, nClasses-1),
                eta = rep(0, nClasses-1)
   )
+
+  # smart initialization to make separation of class intercepts more likely
+  pars$mu <- c(-1,1) * pars$sigma.b
   
   ##Loop for MCEM
   currentPars <- unlist(pars)

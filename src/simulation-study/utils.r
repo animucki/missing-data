@@ -10,5 +10,11 @@ fit.multiple <- function(d, models = c('ignorable','spm','spm+class','class')) {
   if('spm'       %in% models) res[[2]] <- d %>% fit.parametric %>% mutate(model='spm')
   if('spm+class' %in% models) res[[3]] <- d %>% fit.hybrid     %>% mutate(model='spm+class')
   # if('class'     %in% models) res[[4]] <- d %>% fit.class      %>% mutate(model='class')
-  return(bind_rows(res))
+
+  res <- bind_rows(res)
+  write.csv2(res,
+             file = paste0('./log/', format(Sys.time(), "%Y-%m-%d_%Hh%Mm%Ss"), ".csv"),
+             append = TRUE)
+
+  return(res)
 }
