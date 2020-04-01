@@ -7,14 +7,13 @@ fit.class <- function(d) {
   nSubjects <- length(unique(d$subject))
   nTimePoints <- d %>% group_by(subject) %>% summarize(n=n()) %>% pull(n) %>% max
   nClasses <- 3
-  dObs <- d %>% filter(r==1)
   
   #Fit ignorable model to find initial values for parameters
   
   m <- lmer(y ~ (1|subject) + time + treatment,
             data=d, REML=F)
   pars <- list(beta = fixef(m),
-               alpha2 = 1e-4, # time parameter of the hazard function - the likelihood has a removable discontinuity at gamma[1]==0 so don't start too close to it
+               alpha2 = 1e-4, # time parameter of the hazard function - the likelihood has a removable discontinuity at alpha2==0 so don't start too close to it
                alpha3 = 0, # treatment parameter
                sigma.b = as.data.frame(VarCorr(m))$sdcor[1],
                sigma = sigma(m),
@@ -86,10 +85,9 @@ fit.class <- function(d) {
     }
 
     flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ' E step completed'))
-    
-    Xtemp <- as.matrix(d %>% select(time, treatment))
-    
+
     # Minimization step
+
     minusTwoLogLikelihood <- function(x) {
       
       beta <- x[1:3]
@@ -102,28 +100,30 @@ fit.class <- function(d) {
       eta <- x[8 + (nClasses-1) + 1:(nClasses-1)]
       lambda <- x[8 + 2*(nClasses-1) + 1:nClasses]
 
+      c1wlk <- exp(alpha2 * d$time + alpha3 * d$treatment)
+      c2wlk <- - 1/ alpha2 * (exp(alpha2 * d$time)-1) * exp(alpha3 * d$treatment)
+
       tmp <- lapply(dPredictedList, 
                     function(dObj) {
                       ll <- 0
-
-                      #maybe redo, without the for loop?
                       for (i in 1:nSubjects) {
-                        c1 <- lambda[k] * exp(alpha2 * dList[[i]]$time + alpha3 * dList[[i]]$treatment)
-                        c2 <- - lambda[k] / alpha2 * (exp(alpha2 * dList[[i]]$time)-1) * exp(alpha3 * dList[[i]]$treatment)
+                        lambdak <- rep(as.vector(dObj %*% lambda), each = nTimePoints)
+                        c1 <- c1wlk * lambdak
+                        c2 <- c2wlk * lambdak
 
                         ll <- ll +
                           dmultinormal(x = doList[[i]]$y,
                                        mean = beta[1] + beta[2] * doList[[i]]$time + beta[3] * doList[[i]]$treatment + as.vector(c(0,mu) %*% dObj[i,]),
                                        sigma = as.vector( sigma^2 * diag(nrow(doList[[i]])) + sigma.b^2 ),
                                        log = T) +
-                          sum( (1-dList[[i]]$r) * log( c1/(1-theta*c2) ) - (1/theta)*log(1 - theta*c2) ) +
+                          sum( ((1-dList[[i]]$r) * log( c1/(1-theta*c2) ) - (1/theta)*log(1 - theta*c2))[-seq(from=1, to=nrow(dList[[i]]), by=nTimePoints)] ) +
                           sum(dmultinomial( x = dObj[i,],
                                             size = 1,
                                             prob = softmax(c(0,eta)),
                                             log = T))
                       }
-
                       return(ll)
+
                     })
       
       out <- -2*mean(unlist(tmp))
@@ -164,7 +164,7 @@ fit.class <- function(d) {
                  fn=minusTwoLogLikelihood,
                  # gr=minusTwoScore,
                  method = 'L-BFGS-B',
-                 control = list(trace=3, REPORT=1),
+                 control = list(trace=6, REPORT=1),
                  lower = lowerBounds, 
                  upper = Inf,
                  hessian = FALSE
