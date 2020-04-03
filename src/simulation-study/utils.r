@@ -15,3 +15,8 @@ fit.multiple <- function(d, models = c('ignorable','spm','spm+class','class')) {
 
   return(res)
 }
+
+#' matrix trace
+tr <- function(x) {
+  sum(diag(x))
+}
