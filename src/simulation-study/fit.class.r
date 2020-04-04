@@ -285,7 +285,7 @@ fit.class <- function(d) {
 
     #stopping criteria calculation
     crit <- coalesce(mean( (previousPars-currentPars)^2 )/(mean(previousPars^2)+1e-3), Inf)
-    if(crit<1e-4) {
+    if(crit<5e-4) {
       nTimesCriterionMet <- nTimesCriterionMet + 1
     } else {
       nTimesCriterionMet <- 0
