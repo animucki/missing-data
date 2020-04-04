@@ -28,7 +28,7 @@ source("src/simulation-study/fit.hybrid.r")
 source("src/simulation-study/fit.class.r")
 
 set.seed(666L)
-df1 <- generateSamples(samples = 100, participants = 200)
+df1 <- generateSamples(samples = 200, participants = 200)
 
 # ALL SAMPLES
 res <- list()
@@ -38,15 +38,15 @@ res <- list()
 # res[[1]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% lapply(fit.class) %>% bind_rows
 # toc()
 
-# flog.info('Fitting models to MAR scenario...')
-# res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.multiple) %>% bind_rows %>% mutate(scenario='MAR')
+flog.info('Fitting models to MAR scenario...')
+res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.multiple) %>% bind_rows %>% mutate(scenario='MAR')
+# write.csv2(res[[1]], file = '/home/bartosz/Dropbox/outSurvMAR.csv')
 
 flog.info('Fitting models to MNAR scenario...')
 res[[2]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% mclapply(fit.multiple) %>% bind_rows %>% mutate(scenario='MNAR')
-write.csv2(res[[2]],
-           file = './log/outMNAR.csv')
+# write.csv2(res[[2]], file = '/home/bartosz/Dropbox/outSurvMNAR.csv')
 
-result <- bind_rows(res)
+# result <- bind_rows(res)
 
 stop('It\'s all over now')
 
@@ -89,4 +89,4 @@ result <- result %>%
             length_sigma.b = mean(length_sigma.b),
             length_sigma = mean(length_sigma))
 
-View(result)
+# View(result)
