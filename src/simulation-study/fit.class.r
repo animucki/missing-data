@@ -29,7 +29,7 @@ fit.class <- function(d) {
   pars <- list(beta = fixef(m),
                alpha2 = 1e-2, # time parameter of the hazard function - the likelihood has a removable discontinuity at alpha2==0 so don't start too close to it
                alpha3 = 0, # treatment parameter
-               sigma.b = as.data.frame(VarCorr(m))$sdcor[1],
+               sigma.b = as.data.frame(VarCorr(m))$sdcor[1]/2,
                sigma = sigma(m),
                theta = 1e-2, # variance of the frailty distribution
                mu = rep(0, nClasses-1),
