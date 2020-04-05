@@ -271,7 +271,7 @@ fit.class <- function(d) {
     previousPars <- currentPars
     currentPars <- unlist(pars)
 
-    mcSamples <- ceiling(min((mcSamples+2) * 1.3, 250)) #increase the sample size slowly
+    mcSamples <- floor(min(mcSamples * 1.2 + 2, 500)) #increase the sample size slowly
     iter <- iter + 1
 
     #stopping criteria calculation
