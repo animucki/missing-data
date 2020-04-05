@@ -20,7 +20,6 @@ fit.parametric <- function(d) {
                )
   
   ##Loop for MCEM
-  previousPars <- Inf
   currentPars <- unlist(pars)
   
   iter <- 1

@@ -11,7 +11,7 @@ fit.ignorable <- function(d) {
   names(seFixed) <- paste0('se.',names(beta))
   
   #extract Wald standard errors for variance components (not included in output by default)
-  dd.ML <- lme4:::devfun2(m, useSc=TRUE, signames=FALSE)
+  dd.ML <- lme4::devfun2(m, useSc=TRUE, signames=FALSE)
   vv <- as.data.frame(VarCorr(m))
   pars <- vv$sdcor
   names(pars) <- c('sigma.b','sigma')

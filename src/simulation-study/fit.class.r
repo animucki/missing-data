@@ -40,7 +40,6 @@ fit.class <- function(d) {
   # smart initialization to make separation of class intercepts more likely
   pars$mu <- c(-1,1) * pars$sigma.b
 
-  previousPars <- Inf
   currentPars <- unlist(pars)
   
   iter <- 1
