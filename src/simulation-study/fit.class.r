@@ -235,12 +235,6 @@ fit.class <- function(d) {
                       return(grad)
                     }) %>% bind_rows %>% summarize_all(mean) %>% unlist
 
-      # g <- grad(minusTwoLogLikelihood, x)
-      # print(g)
-      # g <- c(3.056300, 208.839858, 4.753829, 7553.115791, 5541.319613, 269.031612, 33.886995, -7553.115988, -80.104027, 41.804567, 26.666667, 44.666667, 3576.584121, 2656.506673, 3899.378046)
-      # print(-2*out/g)
-      # stop()
-
       -2*out
     }
     
@@ -260,9 +254,6 @@ fit.class <- function(d) {
                  upper = Inf,
                  hessian = FALSE
     )
-
-    # print(res$par)
-    # stop()
 
     if(res$convergence == 1 && nTimesCriterionMet >= 2) flog.error('class likelihood did not converge within 250 iterations in final step')
     if(res$convergence > 1) flog.error(paste('class likelihood did not converge, code',res$convergence))
@@ -293,7 +284,7 @@ fit.class <- function(d) {
     }
   }
   
-  flog.trace(paste0('Sample ', key, ': EM result for class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ','), ' , deviance = ', format(currentMinus2LL, digits=7) ) )
+  flog.trace(paste0('Sample ', key, ': EM result for class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')))
   
   x0 <- unlist(pars)
   # hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5], x0[9+ 1:(2*nClasses-2)])), x0[c(1,2,3,8,9)])
