@@ -4,6 +4,13 @@ fit.class <- function(d) {
   set.seed(4114L + key)
   flog.debug(paste0('Fitting class model to sample ', key))
 
+  # Read partial results
+  dPartial <- read.csv('/root/balinPartial.csv')
+  rowPartial <- 0
+  if(key %in% dPartial[,1]) {
+    rowPartial <- which(key == dPartial[,1])
+  }
+
   nSubjects <- length(unique(d$subject))
   nTimePoints <- d %>% group_by(subject) %>% summarize(n=n()) %>% pull(n) %>% max
   nClasses <- 3
@@ -57,7 +64,21 @@ fit.class <- function(d) {
   doList <- d %>% filter(r==1) %>% group_split(subject)
 
   while (nTimesCriterionMet < 3 && iter <= 100) {
-    
+    if(rowPartial > 0) {
+      flog.trace(paste0('Sample ',key, ': resuming EM from partial result'))
+      t <- unlist(dPartial[rowPartial, -1], use.names = F)
+      pars <- list(beta = t[1:3],
+                 alpha2 = t[4],
+                 alpha3 = t[5],
+                 sigma.b = t[6],
+                 sigma = t[7],
+                 theta = t[8],
+                 mu = t[8 + 1:(nClasses-1)],
+                 eta = t[8 + (nClasses-1) + 1:(nClasses-1)],
+                 lambda = t[8 + 2*(nClasses-1) + 1:nClasses])
+      mcSamples <- 100
+    }
+
     flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),
                       ', crit = ', format(crit, digits = 4)) )
 
@@ -271,7 +292,7 @@ fit.class <- function(d) {
     previousPars <- currentPars
     currentPars <- unlist(pars)
 
-    mcSamples <- ceiling(min((mcSamples+2) * 1.3, 250)) #increase the sample size slowly
+    mcSamples <- floor(min(mcSamples * 1.2 + 2, 500)) #increase the sample size slowly
     iter <- iter + 1
 
     #stopping criteria calculation
@@ -281,6 +302,9 @@ fit.class <- function(d) {
     } else {
       nTimesCriterionMet <- 0
     }
+    
+    #do not repeat if this was a resumed run
+    if(rowPartial > 0) break
   }
   
   flog.trace(paste0('Sample ', key, ': EM result for class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')))
@@ -291,9 +315,11 @@ fit.class <- function(d) {
                   fn = function(x) minusTwoLogLikelihood(c(x[c(1,2,3)], x0[c(4,5)], x[c(4,5)], x0[8:length(x0)])),
                   gr = function(x) minusTwoScore(c(x[c(1,2,3)], x0[c(4,5)], x[c(4,5)], x0[8:length(x0)]))[c(1,2,3,6,7)]
   )
-  
   out <- c(key, pars$beta, pars$sigma.b, pars$sigma, sqrt(diag(2*solve(hh))) )
   names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
                   'se.intercept', 'se.time', 'se.treatment', 'se.sigma.b', 'se.sigma')
+
+  flog.trace(paste0('Sample ', key,': full output: ', paste(out, collapse = " ") ))
+
   as.data.frame(as.list(out))
 }
