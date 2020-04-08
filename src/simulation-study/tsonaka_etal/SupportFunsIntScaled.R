@@ -306,7 +306,7 @@ NPSP <- function(data., miss., X, W, betas, sigma2, sigmab, alphas, delta, gp, b
             }
                     
         if(it > 1 && (difL < 0 & abs(difL) > reltol * (abs(logLik.) + reltol))){
-            cat("\niteration:", it, "logLik:", logLik..)
+            # cat("\niteration:", it, "logLik:", logLik..)
             stop("\n************Likelihood failed to increase**************\n") 
             #warning("\nLikelihood failed to increase!!!!!!!!!!!!!!\n")
             }
@@ -314,64 +314,64 @@ NPSP <- function(data., miss., X, W, betas, sigma2, sigmab, alphas, delta, gp, b
         if(!conv){
             fyr <- (Y.b * R.b) %*% pi.         
             gf.val <- colMeans(Y.b * R.b / c(fyr))
-            ind.max <- which(gf.val == max(gf.val));cat("\nmax", ind.max)
-            ind.min <- which(gf.val == min(gf.val));cat("\nmin", ind.min)
+            ind.max <- which(gf.val == max(gf.val));#cat("\nmax", ind.max)
+            ind.min <- which(gf.val == min(gf.val));#cat("\nmin", ind.min)
         }
         logLik. <- - likEval$min.log
-        cat("\niteration:", it, "logLik:", logLik.)
-        if(it > 1) cat("\nDif:", difL)
-        cat("\ngradient", gf.val[ind.max])
+        # cat("\niteration:", it, "logLik:", logLik.)
+        # if(it > 1) cat("\nDif:", difL)
+        # cat("\ngradient", gf.val[ind.max])
         if(gf.val[ind.max] <= 1 + epsilon){
-            cat("\nConverged!")
+            # cat("\nConverged!")
             conv <- TRUE
             }
         #if(it > 1 && (conv & difL < 1e-7)){
         if(it > 1 && (conv & abs(difL) < reltol * (abs(logLik.) + reltol))){
         
-            cat("\nConverged!")
+            # cat("\nConverged!")
             break
             }
         if(!conv){
             a. <- if(lgL.fun(1) > 0) 1 else{
                      optimize(f = lgL.fun, interval = c(0, 1), maximum = TRUE)$maximum}
-            #cat("\nIncr:", lgL.fun(1))
-            #cat("\nIncr:", lgL.fun(a.))
-            cat("\nalpha:", a.)
+            # cat("\nIncr:", lgL.fun(1))
+            # cat("\nIncr:", lgL.fun(a.))
+            # cat("\nalpha:", a.)
 
             pi.n <- pi.
             pi.n[ind.min] <- (1 - a.) * pi.[ind.min]
             pi.n[ind.max] <- c(a. * pi.[ind.min]) + c(pi.[ind.max]) 
             pi. <- pi.n
-            #cat(pi.n[ind.min], pi.n[ind.max], "\n")
+            # cat(pi.n[ind.min], pi.n[ind.max], "\n")
             
             ind.zero <- which(pi. < sqrt(.Machine$double.eps))
-            #ind.zero <- which(pi. < 1e-06)
+            # ind.zero <- which(pi. < 1e-06)
             
             if(length(ind.zero !=0 )){
                 pi.[ind.zero] <- 0
                 pi. <- pi./sum(pi.)
                 pi. <- pi.[-ind.zero]
                 gp <- gp - length(ind.zero)
-                cat("\nPoints:", gp)
-                #print(ind.zero)
+                # cat("\nPoints:", gp)
+                # print(ind.zero)
                 gridp <- gridp[-ind.zero]
             }
 
             id.grid <- which(grid.old %in% gridp)
             pi.old[id.grid] <- pi.  
-            #cat("E(b):", gridp %*% pi., "\n")
-            #cat("\nWeights:", pi.)
-            #cat("\nSum:", sum(pi.))
+            # cat("E(b):", gridp %*% pi., "\n")
+            # cat("\nWeights:", pi.)
+            # cat("\nSum:", sum(pi.))
             }
-        #cat("Grid:", gridp, "\n")
-        #grid.new <- gridp + gridp %*% pi.
-        #cat("E(b.new):", grid.new %*% pi., "\n")
+        # cat("Grid:", gridp, "\n")
+        # grid.new <- gridp + gridp %*% pi.
+        # cat("E(b.new):", grid.new %*% pi., "\n")
 ###
         likEval <- min.log(betas, sigma2, alphas, delta)
         Y.b <- likEval$Y.b
         R.b <- likEval$R.b
         
-if(-likEval$min.log > logLik.) cat("\n VEM increased the likelihood:", -likEval$min.log) else cat("\n ***** VEM DID NOT increase the likelihood ******", -likEval$min.log)
+# if(-likEval$min.log > logLik.) cat("\n VEM increased the likelihood:", -likEval$min.log) else cat("\n ***** VEM DID NOT increase the likelihood ******", -likEval$min.log)
                
 
 # update betas + sigma2
@@ -388,15 +388,15 @@ bts <- optim(par = c(betas, log(sigma2)), fn = min.logbm, gr = grad.bm,
 
 betas <- bts$par[1:nb]
 sigma2 <- exp(bts$par[nb + 1])
-cat("\nbetas:", betas)
-cat("\nsigma2:", sigma2)
-cat("\nb conv:", bts$conv)
-cat("\nb conv:", bts$counts)
+# cat("\nbetas:", betas)
+# cat("\nsigma2:", sigma2)
+# cat("\nb conv:", bts$conv)
+# cat("\nb conv:", bts$counts)
 
 likEval <- min.log(betas, sigma2, alphas, delta)
 Y.b <- likEval$Y.b
 R.b <- likEval$R.b
-cat("\nLog-Lik after bs:", -likEval$min.log)
+# cat("\nLog-Lik after bs:", -likEval$min.log)
 
 
 # update alphas + delta
@@ -408,13 +408,13 @@ alps <- optim(par = c(delta, alphas), fn = min.logR, gr = grad.R, method = "BFGS
 #cat("\na start:", al.1)
 #cat("\na final:", al.2)
 #if(al.2 > al.1) cat("\nas increased the likelihood") else cat("\n***** as DID NOT increase the likelihood ******")
-cat("\nalphas conv:", alps$conv)
-cat("\nalphas counts:", alps$counts)
+# cat("\nalphas conv:", alps$conv)
+# cat("\nalphas counts:", alps$counts)
 
 alphas <- alps$par[-1]
 delta <- alps$par[1]
-cat("\nalphas:", alphas)
-cat("\ndelta:", delta)
+# cat("\nalphas:", alphas)
+# cat("\ndelta:", delta)
 
 }
 

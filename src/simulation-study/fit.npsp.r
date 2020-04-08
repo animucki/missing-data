@@ -18,7 +18,7 @@ fit.npsp <- function(d) {
   model.1 <- NPSP(data.=data., miss.=miss., X=X, W=W,
                   betas = fixef(m), sigma2 = sigma(m)^2, sigmab = as.data.frame(VarCorr(m))$vcov[1],
                   alphas = c(0,0,0), delta = 0,
-                  gp = 161, bound = 3, reltol = 1e-08, epsilon = 0.001, iter = 1000) %>% invisible
+                  gp = 161, bound = 3, reltol = 1e-08, epsilon = 0.001, iter = 1000)
 
   # Standard error calculation
   NPbetas <- model.1$bts
