@@ -436,9 +436,10 @@ list(sup.points = cbind(params = gridp, weight = pi., gr = gf.val),
      fyrbp = fyrbp,
      sig = sigma2, 
      data. = data., 
-     sim.b = summary(simul$b),
-     per.mis = sum(is.na(data.)) / (n * p),
-     bouns = max(simul$b))            
+     # sim.b = summary(simul$b),
+     per.mis = sum(is.na(data.)) / (n * p)
+     # bouns = max(simul$b)
+)
 
 }
 
