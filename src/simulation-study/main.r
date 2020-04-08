@@ -2,7 +2,6 @@
 rm(list = ls())
 
 library(armspp)
-library(fastGHQuad)
 library(futile.logger)
 library(lme4)
 library(mc2d)
@@ -13,42 +12,34 @@ library(tidyverse)
 
 options(mc.cores = parallel::detectCores() - 1)
 
-flog.appender(appender.file(paste0('./log/', format(Sys.time(), "%Y-%m-%d_%Hh%Mm%Ss"), ".log"))) %>% invisible
+flog.appender(appender.file(paste0('./log/sim-', format(Sys.time(), "%Y-%m-%d_%Hh%Mm%Ss"), ".log"))) %>% invisible
 flog.threshold('trace') %>% invisible
 
 flog.info('Sourcing functions...')
-source("src/simulation-study/utils.r")
+source("src/common/utils.r")
 source("src/simulation-study/generateSamples.r")
 source("src/simulation-study/fit.ignorable.r")
-
 source("src/simulation-study/fit.parametric.r")
-
 source("src/simulation-study/fit.hybrid.r")
-
 source("src/simulation-study/fit.class.r")
+source("src/simulation-study/fit.npsp.r")
+source("src/simulation-study/fit.multiple.r")
 
 set.seed(666L)
-df1 <- generateSamples(samples = 200, participants = 200)
+df1 <- generateSamples(samples = 1, participants = 200)
 
 # ALL SAMPLES
 res <- list()
 
-# flog.info('Testing class model...')
-# tic()
-# res[[1]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% lapply(fit.class) %>% bind_rows
-# toc()
+# flog.info('Fitting models to MAR scenario...')
+# res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MAR')
+# write.csv2(res[[1]], file = 'outMAR.csv')
 
-flog.info('Fitting models to MAR scenario...')
-res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.multiple) %>% bind_rows %>% mutate(scenario='MAR')
-# write.csv2(res[[1]], file = '/home/bartosz/Dropbox/outSurvMAR.csv')
-
-flog.info('Fitting models to MNAR scenario...')
-res[[2]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% mclapply(fit.multiple) %>% bind_rows %>% mutate(scenario='MNAR')
-# write.csv2(res[[2]], file = '/home/bartosz/Dropbox/outSurvMNAR.csv')
+# flog.info('Fitting models to MNAR scenario...')
+# res[[2]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MNAR')
+# write.csv2(res[[2]], file = 'outMNAR.csv')
 
 # result <- bind_rows(res)
-
-stop('It\'s all over now')
 
 result <- read.csv2('./result.csv', stringsAsFactors = F, row.names = 1)
 result <- result %>%
