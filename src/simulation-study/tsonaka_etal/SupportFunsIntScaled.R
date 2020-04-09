@@ -314,8 +314,8 @@ NPSP <- function(data., miss., X, W, betas, sigma2, sigmab, alphas, delta, gp, b
         if(!conv){
             fyr <- (Y.b * R.b) %*% pi.         
             gf.val <- colMeans(Y.b * R.b / c(fyr))
-            ind.max <- which(gf.val == max(gf.val));#cat("\nmax", ind.max)
-            ind.min <- which(gf.val == min(gf.val));#cat("\nmin", ind.min)
+            ind.max <- which(gf.val == max(gf.val))[1] #; cat("\nmax", ind.max)
+            ind.min <- which(gf.val == min(gf.val))[1] #; cat("\nmin", ind.min)
         }
         logLik. <- - likEval$min.log
         # cat("\niteration:", it, "logLik:", logLik.)
@@ -340,6 +340,7 @@ NPSP <- function(data., miss., X, W, betas, sigma2, sigmab, alphas, delta, gp, b
 
             pi.n <- pi.
             pi.n[ind.min] <- (1 - a.) * pi.[ind.min]
+
             pi.n[ind.max] <- c(a. * pi.[ind.min]) + c(pi.[ind.max]) 
             pi. <- pi.n
             # cat(pi.n[ind.min], pi.n[ind.max], "\n")

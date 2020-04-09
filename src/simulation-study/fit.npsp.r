@@ -1,6 +1,9 @@
 #' Fit the Tsonaka et al. semi-parametric model
 fit.npsp <- function(d) {
 
+  key <- as.integer(d$sample[1])
+  flog.debug(paste0('Fitting semi-parametric random effect model to sample ', key))
+
   m <- lmer(y ~ (1|subject) + time + treatment,
             data=d, REML=F)
 
@@ -46,8 +49,11 @@ fit.npsp <- function(d) {
   environment(min.logALLProfile) <- environment(grad.ALLProfile) <- environment(hess.parsProfile) <- environment()
 
   hess <- hess.parsProfile(c(c(NPbetas, NPsig^2, NPalphas, NPgamma)))
+  se <- sqrt(diag(2*solve(hess))[1:4])
 
-
-  return(list(m=model.1, hess=hess))
-
+  out <- c(key
+    , model.1$bts, sqrt(model.1$sigmab), sqrt(model.1$sig), se[1:3], NA, se[4] )
+  names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
+                  'se.intercept', 'se.time', 'se.treatment', 'se.sigma.b', 'se.sigma')
+  as.data.frame(as.list(out))
 }
