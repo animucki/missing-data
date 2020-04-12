@@ -16,6 +16,7 @@ flog.threshold('trace') %>% invisible
 flog.info('Sourcing functions...')
 source("src/common/utils.r")
 source("src/empirical-analysis/fit.parametric.r")
+source("src/empirical-analysis/fit.hybrid.r")
 
 
 flog.info('Loading data...')
@@ -40,12 +41,13 @@ dim(r) <- dim(y)
 X <- data %>% transmute("(Intercept)"=1, CYC = as.integer(TXGROUP == 'A'), time = as.integer(time), FVC0 = FVC0, MAXFIB = MAXFIB,
                         "CYC:time" = CYC*time, "CYC:FVC0" = CYC*FVC0, "CYC:MAXFIB" = CYC*MAXFIB) %>% as.matrix
 
-W <- data %>% transmute("(Intercept)"=1, time = as.integer(time)) %>% as.matrix
+W <- data %>% transmute("(Intercept)"=1, CYC = as.integer(TXGROUP == 'A'), time = as.integer(time), FVC0 = FVC0, MAXFIB = MAXFIB) %>% as.matrix
 
-s <- data.frame(X) %>% abs %>% summarize_all(max) %>% unlist
+init <- c(fixef(m1), as.data.frame(VarCorr(m1))$sdcor[1], sigma(m1))
 
 #SPM
 set.seed(1234L)
-m2 <- fit.parametric(y=y, r=r, X=X, W=W, init = c(fixef(m1), as.data.frame(VarCorr(m1))$sdcor[1], sigma(m1)))
+# m2 <- fit.parametric(y=y, r=r, X=X, W=W, init=init)
 
-diag(solve(m2$hess))
+set.seed(111L)
+m3 <- fit.hybrid(y=y, r=r, X=X, W=W, nClasses=3, init=init)
