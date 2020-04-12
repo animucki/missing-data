@@ -81,9 +81,6 @@ fit.parametric <- function(y, r, X, W, init) {
 
       temp <- lapply(dPredictedList,
                        function(dPredicted) {
-                         # print(paste("Walpha range", range( W %*% alpha ) ))
-                         # print(paste("Gammabi range", range(gamma * rep(dPredicted$bDraw, each = ni))))
-
                          sum(dnorm(
                            x = as.vector(t(y)),
                            mean= X %*% beta + rep(dPredicted$bDraw, each = ni),
