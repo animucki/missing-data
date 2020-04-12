@@ -31,24 +31,49 @@ resultSummary <- result %>%
             empse_treatment = sd(bias_treatment),
             empse_sigma.b = sd(bias_sigma.b),
             empse_sigma = sd(bias_sigma),
-            coverage_intercept = mean(coverage_intercept),
-            coverage_time = mean(coverage_time),
-            coverage_treatment = mean(coverage_treatment),
-            coverage_sigma.b = mean(coverage_sigma.b),
-            coverage_sigma = mean(coverage_sigma),
+            coverage_intercept = 100 * mean(coverage_intercept),
+            coverage_time = 100 * mean(coverage_time),
+            coverage_treatment = 100 * mean(coverage_treatment),
+            coverage_sigma.b = 100 * mean(coverage_sigma.b),
+            coverage_sigma = 100 * mean(coverage_sigma),
             length_intercept = mean(length_intercept),
             length_time = mean(length_time),
             length_treatment = mean(length_treatment),
             length_sigma.b = mean(length_sigma.b),
             length_sigma = mean(length_sigma))
 
-# View(resultSummary)
+resultTable <- list()
+
+resultTable[[1]] <- t(resultSummary[,-c(1,2)])[1:5,]
+resultTable[[1]] <- format(resultTable[[1]], digits = 1, scientific = F, trim = T)
+
+resultTable[[2]] <- t(resultSummary[,-c(1,2)])[6:10,]
+resultTable[[2]] <- format(resultTable[[2]], digits = 2, scientific = F, trim = T)
+resultTable[[2]] <- matrix(paste0("(",resultTable[[2]],")"),5,10)
+
+resultTable[[3]] <- t(resultSummary[,-c(1,2)])[11:15,]
+resultTable[[3]] <- format(resultTable[[3]], nsmall = 1, trim = T)
+
+resultTable[[4]] <- t(resultSummary[,-c(1,2)])[16:20,]
+resultTable[[4]] <- format(resultTable[[4]], digits = 1, trim = T)
+resultTable[[4]] <- matrix(paste0("(",resultTable[[4]],")"),5,10)
+
+order <- as.vector(matrix(1:10, nrow = 2, byrow = T))
+order <- c(order, 10+order)
+resultTableCombined <- do.call(rbind, resultTable)[order,]
+colOrder <- c(3,4,2,1,5)
+resultTableCombined[,colOrder]
+resultTableCombined[,5+colOrder]
+
+problematicCells <- abs(t(resultSummary[,-c(1,2)])[1:5,]) > t(resultSummary[,-c(1,2)])[6:10,]
+problematicCells[,colOrder]
+problematicCells[,5+colOrder]
 
 #Type 1 plots: univariate plots to assess the overall distribution and outliers
 
 result2 <- result
-result2$scenario <- factor(result2$scenario, levels = c("MAR","MNAR"))
-result2$model <- factor(result2$model, levels = c("ignorable","spm","hybrid","class","spsp"))
+result2$scenario <- factor(result2$scenario, levels = c("MAR","MNAR"), ordered = T)
+result2$model <- factor(result2$model, levels = c("ignorable","spm","hybrid","class","spsp"), ordered = T)
 
 estimands <- c('intercept', 'time', 'treatment', 'sigma.b', 'sigma')
 estimandsNice <- c(expression(widehat(beta[1])),
@@ -71,7 +96,10 @@ for(i in seq_along(estimands)) {
       geom_hline(yintercept = trueValues[i], linetype="dotted") +
       scale_fill_brewer(palette = "Paired") +
       ylab(estimandsNice[i]) +
-      ggtitle("Estimand distribution")
+      # ggtitle(paste("Distribution of estimated",estimands[i])) +
+      theme(axis.title.x = element_blank())
+
+  if(i<5) plots1_estimand[[i]] <- plots1_estimand[[i]] + theme(legend.title = element_blank(), legend.position = "none")
 }
 # plots1_estimand
 
@@ -82,9 +110,43 @@ for(i in seq_along(estimands)) {
       geom_boxplot(outlier.shape = 1) +
       scale_fill_brewer(palette = "Paired") +
       ylab(seNice[i]) +
-      ggtitle("Estimated standard error distribution")
+      # ggtitle("Distribution of estimated SE of",estimands[i]) +
+      theme(axis.title.x = element_blank())
+
+  if(i<5) plots1_se[[i]] <- plots1_se[[i]] + theme(legend.title = element_blank(), legend.position = "none")
 }
 # plots1_se
+
+#Export all type 1 plots
+for(i in seq_along(estimands)) {
+  if(i==5) {
+    ggsave(paste0("./plots/plot1_est_", estimands[i],".pdf"),
+           plot = plots1_estimand[[i]],
+           device = cairo_pdf,
+           width = 6,
+           height = 3,
+           units = "in")
+    ggsave(paste0("./plots/plot1_se.", estimands[i],".pdf"),
+           plot = plots1_se[[i]],
+           device = cairo_pdf,
+           width = 6,
+           height = 3,
+           units = "in")
+  } else {
+    ggsave(paste0("./plots/plot1_est_", estimands[i],".pdf"),
+           plot = plots1_estimand[[i]],
+           device = cairo_pdf,
+           width = 5,
+           height = 3,
+           units = "in")
+    ggsave(paste0("./plots/plot1_se.", estimands[i],".pdf"),
+           plot = plots1_estimand[[i]],
+           device = cairo_pdf,
+           width = 5,
+           height = 3,
+           units = "in")
+  }
+}
 
 #Type 2 plots: bivariate plots of est.se vs est. for each model/scenario combination
 combinations <- expand.grid(estimand=estimands, scenario=levels(result2$scenario),model=levels(result2$model))[,3:1] %>%
@@ -95,15 +157,26 @@ for(i in seq_len(nrow(combinations))) {
   current_estNice <- estimandsNice[which(estimands==combinations[i,"estimand"])]
   current_seNice <- seNice[which(estimands==combinations[i,"estimand"])]
 
-  plots2[[i]] <- ggplot(result2 %>% filter(model==combinations[i,"model"], scenario==combinations[i,"scenario"]),
+  plots2[[i]] <- ggplot(result2 %>% filter(model==as.character(combinations[i,"model"]), scenario==as.character(combinations[i,"scenario"])),
                         aes_string(x=as.character(combinations[i,"estimand"]), y=paste0("se.",combinations[i,"estimand"]))) +
     geom_density2d() +
     geom_point() +
     xlab(current_estNice) +
-    ylab(current_seNice) +
-    ggtitle( paste0("Est. SE vs estimand for ", combinations[i,"model"], " model under ", combinations[i,"scenario"]) )
+    ylab(current_seNice) #+
+    # ggtitle( paste0("Est. SE vs estimand for ", combinations[i,"model"], " model under ", combinations[i,"scenario"]) )
 }
 # plots2
+
+#Export the type 2 plots
+for(i in seq_len(nrow(combinations))) {
+  ggsave(paste("./plots/plot2", combinations[i,1], combinations[i,2], combinations[i,3], ".pdf", sep="_"),
+         width = 2*2.5,
+         height = 2*1.875,
+         units = "in",
+         plot = plots2[[i]],
+         device = cairo_pdf
+  )
+}
 
 #Type 3 plots: bivariate plots of estimand/SE between every pair of models
 plots3 <- list()
@@ -155,4 +228,14 @@ for(i in seq_len(nrow(combinations3))) {
                                                     c(14,17,19,20,25)),
                               top=textGrob(label = paste0("Between-model plots for ", as.character(combinations3[i,"estimand"]),
                                                           " under ", as.character(combinations3[i,"scenario"])) ))
+}
+#export the type 3 plots
+for (i in seq_len(nrow(combinations3))) {
+  ggsave(paste("./plots/plot3", combinations3[i,1], combinations3[i,2], ".pdf", sep="_"),
+         width = 10,
+         height = 10,
+         units = "in",
+         plot = plots3[[i]],
+         device = cairo_pdf
+  )
 }
