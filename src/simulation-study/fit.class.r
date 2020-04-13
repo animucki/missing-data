@@ -157,14 +157,8 @@ fit.class <- function(d) {
       eta <- x[8 + (nClasses-1) + 1:(nClasses-1)]
       lambda <- x[8 + 2*(nClasses-1) + 1:nClasses]
 
-      # c1wlk <- exp(alpha2 * d$time + alpha3 * d$treatment)
-      # c2wlk <- - 1/ alpha2 * (exp(alpha2 * d$time)-1) * exp(alpha3 * d$treatment)
-
       out <- lapply(dPredictedList, 
                     function(dObj) {
-
-                      # c1 <- c1wlk * lambdak
-                      # c2 <- c2wlk * lambdak
 
                       grad <- grad0
                       for (i in 1:nSubjects) {
@@ -229,8 +223,6 @@ fit.class <- function(d) {
                         colSums(matrix(rep(dlambdak, times = nClasses), ncol = nClasses) *
                                   dObj[rep(seq_len(nrow(dObj)), each=nTimePoints-1),])
 
-
-
                       return(grad)
                     }) %>% bind_rows %>% summarize_all(mean) %>% unlist
 
@@ -240,7 +232,6 @@ fit.class <- function(d) {
     lowerBounds <- rep(-Inf, length(unlist(pars)))
     lowerBounds[c(6,7,8, 8 + 2*(nClasses-1) + 1:nClasses, length(unlist(pars)))] <- 1e-4 #the three variances, and the lambdas, have to be positive
 
-    # ctrl <- list(trace=1, REPORT=10, maxit=max(10*iter,100))
     ctrl <- list(maxit=max(10*iter,100))
     if(nTimesCriterionMet == 2) ctrl$maxit <- 250
 
@@ -286,7 +277,6 @@ fit.class <- function(d) {
   flog.trace(paste0('Sample ', key, ': EM result for class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')))
   
   x0 <- unlist(pars)
-  # hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5], x0[9+ 1:(2*nClasses-2)])), x0[c(1,2,3,8,9)])
   hh <- optimHess(par = x0[c(1,2,3,6,7)],
                   fn = function(x) minusTwoLogLikelihood(c(x[c(1,2,3)], x0[c(4,5)], x[c(4,5)], x0[8:length(x0)])),
                   gr = function(x) minusTwoScore(c(x[c(1,2,3)], x0[c(4,5)], x[c(4,5)], x0[8:length(x0)]))[c(1,2,3,6,7)]
