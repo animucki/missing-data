@@ -232,7 +232,7 @@ fit.class <- function(d) {
     lowerBounds <- rep(-Inf, length(unlist(pars)))
     lowerBounds[c(6,7,8, 8 + 2*(nClasses-1) + 1:nClasses, length(unlist(pars)))] <- 1e-4 #the three variances, and the lambdas, have to be positive
 
-    ctrl <- list(maxit=max(10*iter,100))
+    ctrl <- list(maxit=100)
     if(nTimesCriterionMet == 2) ctrl$maxit <- 250
 
     res <- optim(par=unlist(pars, use.names = F), 
