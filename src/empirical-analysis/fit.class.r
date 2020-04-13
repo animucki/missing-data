@@ -114,13 +114,14 @@ fit.class <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
       alpha <- x[p + 2:pr]
       lsigma.b <- x[p + pr + 1]
       lsigma <- x[p + pr + 2]
-      theta <- x[p + pr + 3]
+      ltheta <- x[p + pr + 3]
       mu <- x[p + pr + 3 + 1:(nClasses-1)]
       eta <- x[p + pr + 3 + (nClasses-1) + 1:(nClasses-1)]
       llambda <- x[p + pr + 3 + 2*(nClasses-1) + 1:nClasses]
 
       sigma.b <- exp(lsigma.b)
       sigma <- exp(lsigma)
+      theta <- exp(ltheta)
       lambda <- exp(llambda)
 
       c1wlk <- exp(alpha_time * time + W %*% alpha)
@@ -164,13 +165,14 @@ fit.class <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
       alpha <- x[p + 2:pr]
       lsigma.b <- x[p + pr + 1]
       lsigma <- x[p + pr + 2]
-      theta <- x[p + pr + 3]
+      ltheta <- x[p + pr + 3]
       mu <- x[p + pr + 3 + 1:(nClasses-1)]
       eta <- x[p + pr + 3 + (nClasses-1) + 1:(nClasses-1)]
       llambda <- x[p + pr + 3 + 2*(nClasses-1) + 1:nClasses]
 
       sigma.b <- exp(lsigma.b)
       sigma <- exp(lsigma)
+      theta <- exp(ltheta)
       lambda <- exp(llambda)
 
       out <- lapply(dPredictedList, 
@@ -222,10 +224,10 @@ fit.class <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
 
                       #grad.theta
                       grad[p+pr+3] <- sum(
-                        ((exp(W %*% alpha) * (exp(time*alpha_time) - 1) * theta * ((as.vector(t(r))-1)*theta -1)*lambdak) /
+                        (exp(W %*% alpha) * (exp(time*alpha_time) - 1) * theta * ((as.vector(t(r))-1)*theta -1)*lambdak) /
                           (alpha_time + exp(W %*% alpha) * (exp(time*alpha_time) - 1) * theta * lambdak) +
                           log(1 + (exp(W %*% alpha) * (exp(time*alpha_time) - 1) * theta * lambdak)/alpha_time)
-                        )[-seq(from = 1, to = nrow(d), by = ni)])/theta^2
+                        )/theta
 
                       #grad.eta
                       grad[,p+pr+3 + (nClasses-1) + 1:(nClasses-1)] <- colSums(dObj[,-1] - rep(softmax(c(0,eta))[-1], each = nrow(dObj)))
