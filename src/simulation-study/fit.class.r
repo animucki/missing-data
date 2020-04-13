@@ -82,7 +82,7 @@ fit.class <- function(d) {
         pr[k] <- dmultinormal(x = doList[[i]]$y,
                               mean = pars$beta[1] + pars$beta[2] * doList[[i]]$time + pars$beta[3] * doList[[i]]$treatment + as.vector(c(0,pars$mu) %*% cik),
                               sigma = as.vector( pars$sigma^2 * diag(nrow(doList[[i]])) + pars$sigma.b^2)) *
-          prod( (c1/(1-pars$theta * c2))^(1-dList[[i]]$r) * (1-pars$theta * c2)^(-1/pars$theta) ) *
+          prod( ((c1/(1-pars$theta * c2))^(1-dList[[i]]$r) * (1-pars$theta * c2)^(-1/pars$theta))[-seq(from=1, to=nrow(d), by=nTimePoints)] ) *
           dmultinomial( x = cik,
                         size = 1,
                         prob = softmax(c(0,pars$eta)))
