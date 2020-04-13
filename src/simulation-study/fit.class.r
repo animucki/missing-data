@@ -212,8 +212,6 @@ fit.class <- function(d) {
 
                       #grad.eta
                       grad[,8 + (nClasses-1) + 1:(nClasses-1)] <- colSums(dObj[,-1] - rep(softmax(c(0,eta))[-1], each = nrow(dObj)))
-                      # print(dObj[,-1] - rep(softmax(c(0,eta))[-1], each = nrow(dObj)))
-                      # stop()
 
                       #grad.lambda
                       dlambdak <- ((1-d$r)*alpha2 - exp(d$treatment *alpha3)*(exp(d$time *alpha2)-1)*lambdak ) /
