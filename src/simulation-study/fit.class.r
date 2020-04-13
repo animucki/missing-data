@@ -105,12 +105,17 @@ fit.class <- function(d) {
       beta <- x[1:3]
       alpha2 <- x[4]
       alpha3 <- x[5]
-      sigma.b <- x[6]
-      sigma <- x[7]
-      theta <- x[8]
+      lsigma.b <- x[6]
+      lsigma <- x[7]
+      ltheta <- x[8]
       mu <- x[8 + 1:(nClasses-1)]
       eta <- x[8 + (nClasses-1) + 1:(nClasses-1)]
-      lambda <- x[8 + 2*(nClasses-1) + 1:nClasses]
+      llambda <- x[8 + 2*(nClasses-1) + 1:nClasses]
+
+      sigma.b <- exp(lsigma.b)
+      sigma <- exp(lsigma)
+      theta <- exp(ltheta)
+      lambda <- exp(llambda)
 
       c1wlk <- exp(alpha2 * d$time + alpha3 * d$treatment)
       c2wlk <- - 1/ alpha2 * (exp(alpha2 * d$time)-1) * exp(alpha3 * d$treatment)
@@ -150,12 +155,17 @@ fit.class <- function(d) {
       beta <- x[1:3]
       alpha2 <- x[4]
       alpha3 <- x[5]
-      sigma.b <- x[6]
-      sigma <- x[7]
-      theta <- x[8]
+      lsigma.b <- x[6]
+      lsigma <- x[7]
+      ltheta <- x[8]
       mu <- x[8 + 1:(nClasses-1)]
       eta <- x[8 + (nClasses-1) + 1:(nClasses-1)]
-      lambda <- x[8 + 2*(nClasses-1) + 1:nClasses]
+      llambda <- x[8 + 2*(nClasses-1) + 1:nClasses]
+
+      sigma.b <- exp(lsigma.b)
+      sigma <- exp(lsigma)
+      theta <- exp(ltheta)
+      lambda <- exp(llambda)
 
       out <- lapply(dPredictedList, 
                     function(dObj) {
@@ -182,8 +192,8 @@ fit.class <- function(d) {
                         grad[,c(1,2,3,8 + 1:(nClasses-1))] <- grad[,c(1,2,3,8 + 1:(nClasses-1))] + t(Xi) %*% invSigma %*% ei
                         # then, we have the variance components
 
-                        grad[,6] <- grad[,6] + 1/2 * tr(tau %*% (matrix(2*sigma.b, nrow = ni, ncol = ni)))
-                        grad[,7] <- grad[,7] + 1/2 * tr(tau %*% (2*sigma * diag(ni)))
+                        grad[,6] <- grad[,6] + 1/2 * sigma.b * tr(tau %*% (matrix(2*sigma.b, nrow = ni, ncol = ni)))
+                        grad[,7] <- grad[,7] + 1/2 * sigma * tr(tau %*% (2*sigma * diag(ni)))
 
                       }
 
@@ -208,14 +218,14 @@ fit.class <- function(d) {
                         ((exp(d$treatment*alpha3) * (exp(d$time*alpha2) - 1) * theta * ((d$r-1)*theta -1)*lambdak) /
                           (alpha2 + exp(d$treatment*alpha3) * (exp(d$time*alpha2) - 1) * theta * lambdak) +
                           log(1 + (exp(d$treatment*alpha3) * (exp(d$time*alpha2) - 1) * theta * lambdak)/alpha2)
-                        )[-seq(from = 1, to = nrow(d), by = nTimePoints)])/theta^2
+                        )[-seq(from = 1, to = nrow(d), by = nTimePoints)])/theta
 
                       #grad.eta
                       grad[,8 + (nClasses-1) + 1:(nClasses-1)] <- colSums(dObj[,-1] - rep(softmax(c(0,eta))[-1], each = nrow(dObj)))
 
                       #grad.lambda
                       dlambdak <- ((1-d$r)*alpha2 - exp(d$treatment *alpha3)*(exp(d$time *alpha2)-1)*lambdak ) /
-                        (lambdak * (alpha2 + exp(d$treatment *alpha3)*(exp(d$time *alpha2)-1)*theta*lambdak ))
+                        (alpha2 + exp(d$treatment *alpha3)*(exp(d$time *alpha2)-1)*theta*lambdak )
                       dlambdak <- dlambdak[-seq(from = 1, to = nrow(d), by = nTimePoints)]
                       grad[,8 + 2*(nClasses-1) + 1:nClasses] <-
                         colSums(matrix(rep(dlambdak, times = nClasses), ncol = nClasses) *
@@ -227,19 +237,19 @@ fit.class <- function(d) {
       -2*out
     }
     
-    lowerBounds <- rep(-Inf, length(unlist(pars)))
-    lowerBounds[c(6,7,8, 8 + 2*(nClasses-1) + 1:nClasses, length(unlist(pars)))] <- 1e-4 #the three variances, and the lambdas, have to be positive
+    # lowerBounds <- rep(-Inf, length(unlist(pars)))
+    # lowerBounds[c(6,7,8, 8 + 2*(nClasses-1) + 1:nClasses, length(unlist(pars)))] <- 1e-4 #the three variances, and the lambdas, have to be positive
 
-    ctrl <- list(maxit=100)
+    ctrl <- list(maxit=min(10*iter,100))
     if(nTimesCriterionMet == 2) ctrl$maxit <- 250
 
     res <- optim(par=unlist(pars, use.names = F), 
                  fn=minusTwoLogLikelihood,
                  gr=minusTwoScore,
-                 method = 'L-BFGS-B',
+                 method = 'BFGS',
                  control = ctrl,
-                 lower = lowerBounds, 
-                 upper = Inf,
+                 # lower = lowerBounds,
+                 # upper = Inf,
                  hessian = FALSE
     )
 
@@ -249,12 +259,12 @@ fit.class <- function(d) {
     pars <- list(beta = res$par[1:3],
                  alpha2 = res$par[4],
                  alpha3 = res$par[5],
-                 sigma.b = res$par[6],
-                 sigma = res$par[7],
-                 theta = res$par[8],
+                 sigma.b = exp(res$par[6]),
+                 sigma = exp(res$par[7]),
+                 theta = exp(res$par[8]),
                  mu = res$par[8 + 1:(nClasses-1)],
                  eta = res$par[8 + (nClasses-1) + 1:(nClasses-1)],
-                 lambda = res$par[8 + 2*(nClasses-1) + 1:nClasses]
+                 lambda = exp(res$par[8 + 2*(nClasses-1) + 1:nClasses])
     )
 
     previousPars <- currentPars
