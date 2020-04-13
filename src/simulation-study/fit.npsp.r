@@ -15,8 +15,8 @@ fit.npsp <- function(d) {
   X <- as.matrix(d[,c("time","treatment")])
   W <- cbind(1, as.matrix(d[,c("time","treatment")]))[-seq(from=1,to=nrow(d),by=ni),]
 
-  source("src/simulation-study/tsonaka_etal/SupportFunsIntScaled.R")
-  source("src/simulation-study/tsonaka_etal/SupportFunsStdErrorsScaled.R")
+  source("src/tsonaka_etal/SupportFunsIntScaled.R")
+  source("src/tsonaka_etal/SupportFunsStdErrorsScaled.R")
 
   model.1 <- NPSP(data.=data., miss.=miss., X=X, W=W,
                   betas = fixef(m), sigma2 = sigma(m)^2, sigmab = as.data.frame(VarCorr(m))$vcov[1],
