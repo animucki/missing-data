@@ -1,5 +1,5 @@
 #Fit the class model of Lin, McCulloch, and Rosenheck
-fit.class <- function(y, r, X, W, nClasses, init) {
+fit.class <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
 
   ni <- ncol(y)
   n <- nrow(y)
@@ -286,8 +286,8 @@ fit.class <- function(y, r, X, W, nClasses, init) {
   
   flog.trace(paste0('EM result for class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')))
   
-  hess <- hessian(func = minusTwoLogLikelihood,
-                  x = unlist(pars, use.names = F))
+  #Calculate the Hessian by calculating the Richardson-extrapolated Jacobian of the gradient
+  hess <- jacobian(func = minusTwoScore, x = unlist(pars, use.names = F), method = hessMethod)
 
   return(list(res = res$value, pars = pars, hess = hess))
 }

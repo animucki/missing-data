@@ -6,7 +6,6 @@ library(futile.logger)
 library(lme4)
 library(mc2d)
 library(numDeriv)
-library(optimx)
 library(tictoc)
 library(tidyverse)
 

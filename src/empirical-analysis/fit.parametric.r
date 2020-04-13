@@ -1,5 +1,5 @@
 #Fit the shared-parameter model
-fit.parametric <- function(y, r, X, W, init) {
+fit.parametric <- function(y, r, X, W, init, hessMethod = "Richardson") {
 
   ni <- ncol(y)
   n <- nrow(y)
@@ -142,10 +142,7 @@ fit.parametric <- function(y, r, X, W, init) {
     res <- optim(par=unlist(pars, use.names = F),
                  fn=minusTwoLogLikelihood,
                  gr=minusTwoScore,
-                 # method = 'L-BFGS-B',
                  method = 'BFGS',
-                 # lower = c(rep(-Inf, p+pr+1), 1e-4, 1e-4),
-                 # upper = Inf,
                  hessian = FALSE
                  )
 
@@ -177,8 +174,8 @@ fit.parametric <- function(y, r, X, W, init) {
 
   flog.trace(paste0('EM result for spm: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')) )
 
-  hess <- hessian(func = minusTwoLogLikelihood,
-                  x = unlist(pars, use.names = F))
+  #Calculate the Hessian by calculating the Richardson-extrapolated Jacobian of the gradient
+  hess <- jacobian(func = minusTwoScore, x = unlist(pars, use.names = F), method = hessMethod)
 
   return(list(res = res$value, pars = pars, hess = hess))
 }

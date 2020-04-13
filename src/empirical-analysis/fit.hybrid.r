@@ -1,5 +1,5 @@
 #Fit the class model of Lin, McCulloch, and Rosenheck, but with Bernoulli missingness
-fit.hybrid <- function(y, r, X, W, nClasses, init) {
+fit.hybrid <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
 
   ni <- ncol(y)
   n <- nrow(y)
@@ -220,9 +220,6 @@ fit.hybrid <- function(y, r, X, W, nClasses, init) {
                  fn=minusTwoLogLikelihood,
                  gr=minusTwoScore,
                  method = 'BFGS',
-                 # control = list(trace=1, REPORT=1),
-                 # lower = c(rep(-Inf, 8), 1e-4, 1e-4, rep(-Inf, 2*(nClasses-1))),
-                 # upper = Inf,
                  hessian = FALSE
     )
 
@@ -252,8 +249,8 @@ fit.hybrid <- function(y, r, X, W, nClasses, init) {
   
   flog.trace(paste0('EM result for spm+class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',') ) )
 
-  hess <- hessian(func = minusTwoLogLikelihood,
-                  x = unlist(pars, use.names = F))
+  #Calculate the Hessian by calculating the Richardson-extrapolated Jacobian of the gradient
+  hess <- jacobian(func = minusTwoScore, x = unlist(pars, use.names = F), method = hessMethod)
 
   return(list(res = res$value, pars = pars, hess = hess))
 }
