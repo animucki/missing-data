@@ -73,3 +73,14 @@ if(file.exists("data/m3.rds")) {
   m3 <- fit.hybrid(y=y, r=r, X=X, W=W, nClasses=3, init=init)
   saveRDS(m3, "data/m3.rds")
 }
+
+# Class/survival
+if(file.exists("data/m4.rds")) {
+  flog.info("Reading class/survival model from file...")
+  m3 <- readRDS("data/m4.rds")
+} else {
+  flog.info("Fitting class/survival model...")
+  set.seed(1121L)
+  m3 <- fit.hybrid(y=y, r=r, X=X, W=W[,-1], nClasses=3, init=init)
+  saveRDS(m3, "data/m4.rds")
+}
