@@ -32,7 +32,14 @@ data <- dataWide %>%
          CYC = as.integer(TXGROUP == 'A'))
 
 #Ignorable analysis
-m1 <- lmer(FVC ~ (1|pt_id) + CYC*(time + FVC0 + MAXFIB), data = data, REML = F)
+if(file.exists("data/m1.rds")) {
+  flog.info("Reading ignorable model from file...")
+  m1 <- readRDS("data/m1.rds")
+} else {
+  flog.info("Fitting ignorable model...")
+  m1 <- lmer(FVC ~ (1 | pt_id) + CYC * (time + FVC0 + MAXFIB), data = data, REML = F)
+  saveRDS(m1, "data/m1.rds")
+}
 
 y <- dataWide %>% select(starts_with("FVC")) %>% select(-1) %>% as.matrix
 r <- as.integer(!is.na(y))
@@ -46,8 +53,23 @@ W <- data %>% transmute("(Intercept)"=1, CYC = as.integer(TXGROUP == 'A'), time 
 init <- c(fixef(m1), as.data.frame(VarCorr(m1))$sdcor[1], sigma(m1))
 
 #SPM
-set.seed(1234L)
-# m2 <- fit.parametric(y=y, r=r, X=X, W=W, init=init)
+if(file.exists("data/m2.rds")) {
+  flog.info("Reading shared-parameter model from file...")
+  m2 <- readRDS("data/m2.rds")
+} else {
+  flog.info("Fitting shared-parameter model...")
+  set.seed(1234L)
+  m2 <- fit.parametric(y = y, r = r, X = X, W = W, init = init)
+  saveRDS(m2, "data/m2.rds")
+}
 
-set.seed(111L)
-m3 <- fit.hybrid(y=y, r=r, X=X, W=W, nClasses=3, init=init)
+# Hybrid
+if(file.exists("data/m3.rds")) {
+  flog.info("Reading hybrid model from file...")
+  m3 <- readRDS("data/m3.rds")
+} else {
+  flog.info("Fitting hybrid model...")
+  set.seed(111L)
+  m3 <- fit.hybrid(y=y, r=r, X=X, W=W, nClasses=3, init=init)
+  saveRDS(m3, "data/m3.rds")
+}
