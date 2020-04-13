@@ -46,13 +46,13 @@ fit.parametric <- function(y, r, X, W, init) {
                    log_pdf = function(bi) {
                      sum(dnorm(
                        x = y[i,],
-                       mean = X[i,] %*% pars$beta + bi,
+                       mean = X[5*(i-1) + 1:5,] %*% pars$beta + bi,
                        sd = pars$sigma,
                        log = T), na.rm = T)+ #na.rm=T skips the missing observations
                        sum(dbinom(
                          x=r[i,],
                          size = 1,
-                         prob = plogis( W[i,] %*% pars$alpha + pars$gamma * bi ),
+                         prob = plogis( W[5*(i-1) + 1:5,] %*% pars$alpha + pars$gamma * bi ),
                          log = T)) +
                        dnorm(
                          x=bi,

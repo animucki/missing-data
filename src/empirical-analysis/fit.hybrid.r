@@ -16,7 +16,7 @@ fit.hybrid <- function(y, r, X, W, nClasses, init) {
                eta = rep(0, nClasses-1)
   )
 
-  # smart initialization to make separation of class intercepts more likely
+  # smart initialization to make separation of class intercepts more likely (intended for 3 classes)
   pars$mu <- c(-1,1) * pars$sigma.b
   
   ##Loop for MCEM
@@ -39,7 +39,7 @@ fit.hybrid <- function(y, r, X, W, nClasses, init) {
                       ', crit = ', format(crit, digits = 4)) )
     
     # Monte Carlo Expectation step
-    # Initialize the list of simulated intercepts
+    # Initialize the list of simulated intercepts and class memberships
     for (mc in 1:mcSamples) {
       dPredictedList[[mc]] <- list(cDrawMat=matrix(NA_integer_,
                                                    nrow = n,
@@ -61,13 +61,13 @@ fit.hybrid <- function(y, r, X, W, nClasses, init) {
                        out <- out +
                          prod(dnorm( #outcome
                            x = y[i,],
-                           mean = X[i,] %*% pars$beta +
+                           mean = X[5*(i-1) + 1:5,] %*% pars$beta +
                              bi + c(0, pars$mu)[k],
                            sd = pars$sigma), na.rm = T) *
                            prod(dbinom( #missingness
                              x = r[i,],
                              size = 1,
-                             prob = plogis( W[i,] %*% pars$alpha + pars$gamma * bi + pars$delta * c(0, pars$mu)[k])
+                             prob = plogis( W[5*(i-1) + 1:5,] %*% pars$alpha + pars$gamma * bi + pars$delta * c(0, pars$mu)[k])
                            )) *
                            dnorm( #(normal) random intercept
                              x = bi,
@@ -91,12 +91,12 @@ fit.hybrid <- function(y, r, X, W, nClasses, init) {
           ciConditional[k] <-
             prod(dnorm( #outcome
               x = y[i,],
-              mean = X[i,] %*% pars$beta + bVec[mc] + c(0, pars$mu)[k],
+              mean = X[5*(i-1) + 1:5,] %*% pars$beta + bVec[mc] + c(0, pars$mu)[k],
               sd = pars$sigma), na.rm = T) *
               prod(dbinom( #missingness
                 x = r[i,],
                 size = 1,
-                prob = plogis(W[i,] %*% pars$alpha + pars$gamma * bVec[mc] + pars$delta * c(0, pars$mu)[k])
+                prob = plogis(W[5*(i-1) + 1:5,] %*% pars$alpha + pars$gamma * bVec[mc] + pars$delta * c(0, pars$mu)[k])
               )) *
               dnorm( #(normal) random intercept
                 x = bVec[mc],
