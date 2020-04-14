@@ -109,7 +109,7 @@ min.log <- function(betas, sigma2, alphas, delta){
     fixR <- drop(W %*% alphas)
     R.b <- matrix(0, nrow = n, ncol = gp)
     for(i in 1:gp){
-        predR <- matrix(fixR + delta * gridp[i], byrow = TRUE, ncol = p - 1)
+        predR <- matrix(fixR + delta * gridp[i], byrow = TRUE, ncol = ncol(miss.))
         R.b[, i] <- rowSums(miss. * predR + log(1 - plogis(predR)), na.rm = TRUE)
         }
     min.log <- -sum(log(exp(Y.b + R.b) %*% pi.))
@@ -216,7 +216,7 @@ min.logR <- function(pars){
     fixR <- W %*% alphas
     R.b <- matrix(0, nrow = n, ncol = gp)
     for(i in 1:gp){
-        predR <- matrix(fixR + delta * gridp[i], byrow = TRUE, ncol = p - 1)
+        predR <- matrix(fixR + delta * gridp[i], byrow = TRUE, ncol = ncol(miss.))
         R.b[, i] <- exp(rowSums(miss. * predR + log(1 - plogis(predR))))
     }
     -sum(log((Y.b * R.b) %*% pi.))
@@ -231,14 +231,14 @@ grad.R <- function(pars){
     delta <- pars[1]
     alphas <- pars[-1]
     fixR <- W %*% alphas
-    indx <- rep(1:n, each = p - 1) 
+    indx <- rep(1:n, each = ncol(miss.)) 
     R.b <- matrix(0, nrow = n, ncol = gp)
     Rpw <- matrix(0, nrow = n, ncol = gp)
     Rpm <- matrix(0, nrow = n, ncol = gp)
     dl.b <- numeric(na)  
     for(bb in 1:na){
     for(i in 1:gp){
-        predR <- matrix(fixR + delta * gridp[i], byrow = TRUE, ncol = p - 1)
+        predR <- matrix(fixR + delta * gridp[i], byrow = TRUE, ncol = ncol(miss.))
         Rpw[, i] <- rowsum(c(t((miss. - plogis(predR)))) * W[, bb], group = indx, na.rm = TRUE)
         Rpm[, i] <- rowsum(c(t((miss. - plogis(predR)))) * gridp[i], group = indx, na.rm = TRUE)
         R.b[, i] <- exp(rowSums(miss. * predR + log(1 - plogis(predR))))
@@ -512,7 +512,7 @@ opt.missin <- function(thetas){
     gammas <- thetas
     mu.t <- plogis(c(W %*% gammas) + alpha * mat.bq)
     mr <- Rn * log(mu.t) + Rn. * log(1 - mu.t)
-    prs. <- array(mr, c(p - 1, n, k))
+    prs. <- array(mr, c(ncol(miss.), n, k))
     log.p.tb <- colSums(prs., 2)
     p.bytn <- p.byt * log.p.tb
     -sum(c(p.bytn %*% wGHn))
@@ -521,7 +521,7 @@ opt.missin <- function(thetas){
 opt.missin2 <- function(alph){
     mu.t <- plogis(c(W %*% gammas) + alph * mat.bq)
     mr <- Rn * log(mu.t) + Rn. * log(1 - mu.t)
-    prs. <- array(mr, c(p - 1, n, k))
+    prs. <- array(mr, c(ncol(miss.), n, k))
     log.p.tb <- colSums(prs., 2)
     p.bytn <- p.byt * log.p.tb
     -sum(c(p.bytn %*% wGHn))
@@ -568,7 +568,7 @@ SP <- function(betas, sigma, alphas, gama, sigma.b, dat, d., qp, iter, reltol = 
             bqy <- b[, 1:qy]
             bqy2 <- if(qy == 1) bqy * bqy else t(apply(bqy, 1, function(x) x %o% x))
             Z.tbqy <- Z %*% t(bqy)
-            mat.bq <- matrix(rep(b[, q], p - 1), n * (p - 1), k, TRUE)
+            mat.bq <- matrix(rep(b[, q], ncol(miss.)), n * (ncol(miss.)), k, TRUE)
             wGH <- as.matrix(expand.grid(lapply(1:q, function(k, u) u$w, u = GH)))
             wGH <- sqrt(2) * apply(wGH, 1, prod) * exp(rowSums(b. * b.))
 
@@ -590,7 +590,7 @@ SP <- function(betas, sigma, alphas, gama, sigma.b, dat, d., qp, iter, reltol = 
 
         mu.t <- plogis(c(W %*% gammas) + alpha * mat.bq)
         mr <- Rn * log(mu.t) + Rn. * log(1 - mu.t)
-        prs. <- array(mr, c(p - 1, n, k))
+        prs. <- array(mr, c(ncol(miss.), n, k))
         log.p.tb <- colSums(prs., 2)
     
         p.ytb <- exp(log.p.yb + log.p.tb)

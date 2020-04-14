@@ -3,10 +3,11 @@
 # minus - log lik as a function of betas, sigma2, alphas, gamma, pi.
 min.logALLProfile <- function(pars){
     betas.0 <- pars[1]
-    betas <- pars[1:2 + 1]
-    sigma2 <- pars[3 + 1]
-    alphas <- pars[4:6 + 1]
-    delta <- pars[7 + 1]
+    betas <- pars[1+ 1:ncol(X)]
+    sigma2 <- pars[1+ ncol(X) + 1]
+    alphas <- pars[1+ ncol(X) + 1 + 1:ncol(W)]
+    delta <- pars[1+ ncol(X) + 1 + ncol(W) + 1]
+
     fixY <- outer(betas.0 + drop(X %*% betas), gridp, "+") 
     prY <- dnorm(y, mean = fixY, sd = sqrt(sigma2), log = TRUE) 
     indx <- rep(1:n, each = p) 
@@ -15,7 +16,7 @@ min.logALLProfile <- function(pars){
     fixR <- drop(W %*% alphas)
     R.b <- matrix(0, nrow = n, ncol = gp)
     for(i in 1:gp){
-        predR <- matrix(fixR + delta * gridp[i], byrow = TRUE, ncol = p - 1)
+        predR <- matrix(fixR + delta * gridp[i], byrow = TRUE, ncol = ncol(miss.))
         R.b[, i] <- rowSums(miss. * predR + log(1 - plogis(predR)), na.rm = TRUE)
         }
     min.log <- -sum(log(exp(Y.b + R.b) %*% pi.))
@@ -46,10 +47,11 @@ hess.parsProfile <- function(params){
 # minus - log lik as a function of betas, sigma2, alphas, gamma, pi.
 min.logALLThres <- function(pars){
     betas.0 <- pars[1]
-    betas <- pars[1:2 + 1]
-    sigma2 <- pars[3 + 1]
-    alphas <- pars[4:6 + 1]
-    delta <- pars[7 + 1]
+    betas <- pars[2:ncol(X)]
+    sigma2 <- pars[ncol(X) + 1]
+    alphas <- pars[ncol(X) + 1 + 1:ncol(W)]
+    delta <- pars[ncol(X) + 1 + 1:ncol(W) + 1]
+
     pi. <- pars[-c(1:(7 + 1))]
     pi. <- c((1 - sum(pi.)), pi.)
     fixY <- outer(betas.0 + drop(X %*% betas), gridp, "+") 
@@ -60,7 +62,7 @@ min.logALLThres <- function(pars){
     fixR <- drop(W %*% alphas)
     R.b <- matrix(0, nrow = n, ncol = gp)
     for(i in 1:gp){
-        predR <- matrix(fixR + delta * gridp[i], byrow = TRUE, ncol = p - 1)
+        predR <- matrix(fixR + delta * gridp[i], byrow = TRUE, ncol = ncol(miss.))
         R.b[, i] <- rowSums(miss. * predR + log(1 - plogis(predR)), na.rm = TRUE)
         }
     min.log <- -sum(log(exp(Y.b + R.b) %*% pi.))
@@ -132,7 +134,7 @@ min.logALL <- function(pars){
     bqy <- b[, 1:qy]
     bqy2 <- if(qy == 1) bqy * bqy else t(apply(bqy, 1, function(x) x %o% x))
     Z.tbqy <- Z %*% t(bqy)
-    mat.bq <- matrix(rep(b[, q], p - 1), n * (p - 1), k, TRUE)
+    mat.bq <- matrix(rep(b[, q], ncol(miss.)), n * (ncol(miss.)), k, TRUE)
     wGH <- as.matrix(expand.grid(lapply(1:q, function(k, u) u$w, u = GH)))
     wGH <- sqrt(2) * apply(wGH, 1, prod) * exp(rowSums(b. * b.))
 
@@ -144,7 +146,7 @@ min.logALL <- function(pars){
     log.p.yb <- rowsum(dnorm(y, mu.y, sigma.y, log = TRUE), id)
     mu.t <- plogis(c(W %*% gammas) + alpha * mat.bq)
     mr <- Rn * log(mu.t) + Rn. * log(1 - mu.t)
-    prs. <- array(mr, c(p - 1, n, k))
+    prs. <- array(mr, c(ncol(miss.), n, k))
     log.p.tb <- colSums(prs., 2)
     p.ytb <- exp(log.p.yb + log.p.tb)
     p.b <- dnorm(b, sd = sigma.b)
