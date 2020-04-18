@@ -40,9 +40,9 @@ jobs <- split(resJobs, seq(nrow(resJobs)))
 
 res <- jobs %>% mclapply(function (row) {
   if(row$scenario == "MAR") {
-    df1 %>% mutate(y=yMAR, r=rMAR) %>% filter(sample == row$sample) %>% fit.class %>% mutate(scenario='MAR')
+    df1 %>% mutate(y=yMAR, r=rMAR, scenario='MAR') %>% filter(sample == row$sample) %>% fit.class %>% mutate(scenario='MAR')
   } else {
-    df1 %>% mutate(y=yMNAR, r=rMNAR) %>% filter(sample == row$sample) %>% fit.class %>% mutate(scenario='MNAR')
+    df1 %>% mutate(y=yMNAR, r=rMNAR, scenario='MNAR') %>% filter(sample == row$sample) %>% fit.class %>% mutate(scenario='MNAR')
   }}, mc.preschedule = F)
 
 # res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MAR')
