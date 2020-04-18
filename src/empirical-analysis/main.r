@@ -16,7 +16,7 @@ flog.info('Sourcing functions...')
 source("src/common/utils.r")
 source("src/empirical-analysis/fit.parametric.r")
 source("src/empirical-analysis/fit.hybrid.r")
-# source("src/empirical-analysis/fit.class.r")
+source("src/empirical-analysis/fit.class.r")
 source("src/empirical-analysis/fit.npsp.r")
 
 
@@ -78,16 +78,16 @@ if(file.exists("data/m3.rds")) {
 flog.info("Hybrid model successfully loaded!")
 
 # Class/survival
-# if(file.exists("data/m4.rds")) {
-#   flog.info("Reading class/survival model from file...")
-#   m4 <- readRDS("data/m4.rds")
-# } else {
-#   flog.info("Fitting class/survival model...")
-#   set.seed(1121L)
-#   m4 <- fit.class(y=y, r=r, X=X, W=W[,-1], nClasses=3, init=init)
-#   saveRDS(m4, "data/m4.rds")
-# }
-# flog.info("Class/survival model successfully loaded!")
+if(file.exists("data/m4.rds")) {
+  flog.info("Reading class/survival model from file...")
+  m4 <- readRDS("data/m4.rds")
+} else {
+  flog.info("Fitting class/survival model...")
+  set.seed(1121L)
+  m4 <- fit.class(y=y, r=r, X=X, W=W[,-1], nClasses=3, init=init)
+  saveRDS(m4, "data/m4.rds")
+}
+flog.info("Class/survival model successfully loaded!")
 
 # SPSPM (Tsonaka et. al)
 if(file.exists("data/m5.rds")) {
