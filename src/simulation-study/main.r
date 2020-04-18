@@ -30,14 +30,23 @@ source("src/simulation-study/fit.multiple.r")
 set.seed(666L)
 df1 <- generateSamples(samples = 100, participants = 200)
 
-# ALL SAMPLES
-res <- list()
+#this is SPECIAL CODE!
+resPartial <- read.csv2('./data/result.csv', stringsAsFactors = F, row.names = 1) %>%
+  filter(model == "class")
 
-flog.info('Fitting models to MAR scenario...')
-res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MAR')
+resJobs <- expand.grid(scenario = c("MAR","MNAR"), sample = 1:100, stringsAsFactors = F)
+resJobs <- anti_join(resJobs, resPartial)
+jobs <- split(resJobs, seq(nrow(resJobs)))
 
-flog.info('Fitting models to MNAR scenario...')
-res[[2]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MNAR')
+res <- jobs %>% mclapply(function (row) {
+  if(row$scenario == "MAR") {
+    df1 %>% mutate(y=yMAR, r=rMAR) %>% filter(sample == row$sample) %>% fit.class %>% mutate(scenario='MAR')
+  } else {
+    df1 %>% mutate(y=yMNAR, r=rMNAR) %>% filter(sample == row$sample) %>% fit.class %>% mutate(scenario='MNAR')
+  }}, mc.preschedule = F)
+
+# res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MAR')
+# res[[2]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MNAR')
 
 result <- bind_rows(res)
-write.csv2(result, './data/result.csv')
+write.csv2(result, './data/result_p2.csv')

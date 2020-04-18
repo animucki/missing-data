@@ -56,7 +56,7 @@ fit.class <- function(d) {
   dList <- d %>% group_split(subject)
   doList <- d %>% filter(r==1) %>% group_split(subject)
 
-  while (nTimesCriterionMet < 3 && iter <= 100) {
+  while (nTimesCriterionMet < 3 && iter <= 10) {
     
     flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),
                       ', crit = ', format(crit, digits = 4)) )
@@ -232,7 +232,7 @@ fit.class <- function(d) {
 
     # ctrl <- list(maxit=min(10*iter,100), trace = 6, REPORT = 1)
     ctrl <- list(maxit=min(10*iter,100))
-    if(nTimesCriterionMet == 2) ctrl$maxit <- 250
+    # if(nTimesCriterionMet == 2) ctrl$maxit <- 250
 
     res <- optim(par=unlist(pars, use.names = F), 
                  fn=minusTwoLogLikelihood,
@@ -261,12 +261,12 @@ fit.class <- function(d) {
     previousPars <- currentPars
     currentPars <- unlist(pars)
 
-    mcSamples <- floor(min(mcSamples * 1.2 + 2, 500)) #increase the sample size slowly
+    mcSamples <- floor(min(mcSamples * 1.2 + 2, 250)) #increase the sample size slowly
     iter <- iter + 1
 
     #stopping criteria calculation
     crit <- coalesce(mean( (previousPars-currentPars)^2 )/(mean(previousPars^2)+1e-3), Inf)
-    if(crit<5e-4) {
+    if(crit<1e-3) {
       nTimesCriterionMet <- nTimesCriterionMet + 1
     } else {
       nTimesCriterionMet <- 0
