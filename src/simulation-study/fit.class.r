@@ -2,7 +2,7 @@
 fit.class <- function(d) {
   key <- as.integer(d$sample[1])
   set.seed(4114L + key)
-  flog.debug(paste0('Fitting class model to sample ', key))
+  flog.debug(paste0('Fitting class model to sample ', key, ' ', d$scenario[1]))
 
   nSubjects <- length(unique(d$subject))
   nTimePoints <- d %>% group_by(subject) %>% summarize(n=n()) %>% pull(n) %>% max
@@ -56,9 +56,9 @@ fit.class <- function(d) {
   dList <- d %>% group_split(subject)
   doList <- d %>% filter(r==1) %>% group_split(subject)
 
-  while (nTimesCriterionMet < 3 && iter <= 100) {
+  while (nTimesCriterionMet < 3 && iter <= 10) {
     
-    flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),
+    flog.trace(paste0('Sample ', key, ' ', d$scenario[1], ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),
                       ', crit = ', format(crit, digits = 4)) )
 
     # Monte Carlo Expectation step
@@ -97,7 +97,7 @@ fit.class <- function(d) {
       }
     }
 
-    flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ' E step completed'))
+    flog.trace(paste0('Sample ', key, ' ', d$scenario[1],': EM iteration ', iter, ' E step completed'))
 
     # Minimization step
     minusTwoLogLikelihood <- function(x) {
@@ -232,7 +232,7 @@ fit.class <- function(d) {
 
     # ctrl <- list(maxit=min(10*iter,100), trace = 6, REPORT = 1)
     ctrl <- list(maxit=min(10*iter,100))
-    if(nTimesCriterionMet == 2) ctrl$maxit <- 250
+    # if(nTimesCriterionMet == 2) ctrl$maxit <- 250
 
     res <- optim(par=unlist(pars, use.names = F), 
                  fn=minusTwoLogLikelihood,
@@ -261,19 +261,19 @@ fit.class <- function(d) {
     previousPars <- currentPars
     currentPars <- unlist(pars)
 
-    mcSamples <- floor(min(mcSamples * 1.2 + 2, 500)) #increase the sample size slowly
+    mcSamples <- floor(min(mcSamples * 1.2 + 2, 250)) #increase the sample size slowly
     iter <- iter + 1
 
     #stopping criteria calculation
     crit <- coalesce(mean( (previousPars-currentPars)^2 )/(mean(previousPars^2)+1e-3), Inf)
-    if(crit<5e-4) {
+    if(crit<1e-3) {
       nTimesCriterionMet <- nTimesCriterionMet + 1
     } else {
       nTimesCriterionMet <- 0
     }
   }
   
-  flog.trace(paste0('Sample ', key, ': EM result for class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')))
+  flog.trace(paste0('Sample ', key, ' ', d$scenario[1],': EM result for class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')))
   
   x0 <- unlist(pars)
   hh <- optimHess(par = x0[c(1,2,3,6,7)],
@@ -284,5 +284,8 @@ fit.class <- function(d) {
   out <- c(key, pars$beta, pars$sigma.b, pars$sigma, sqrt(diag(2*solve(hh))) )
   names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
                   'se.intercept', 'se.time', 'se.treatment', 'se.sigma.b', 'se.sigma')
+
+  flog.info(paste('Sample', key, d$scenario[1], 'full output', paste(out, collapse = ', ')))
+
   as.data.frame(as.list(out))
 }
