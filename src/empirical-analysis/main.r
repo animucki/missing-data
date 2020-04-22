@@ -84,8 +84,15 @@ if(file.exists("data/m4.rds")) {
 } else {
   flog.info("Fitting class/survival model...")
   set.seed(1121L)
+
+  isExcl <- rowSums(r) <= 1
+  rowsExcl <- rep(isExcl, each = ncol(r))
+
+  # m4 <- fit.class(y=y[!isExcl,], r=r[!isExcl,], X=X[!rowsExcl,], W=W[!rowsExcl,-1], nClasses=3, init=init)
+
   m4 <- fit.class(y=y, r=r, X=X, W=W[,-1], nClasses=3, init=init)
-  saveRDS(m4, "data/m4.rds")
+
+  # saveRDS(m4, "data/m4.rds")
 }
 flog.info("Class/survival model successfully loaded!")
 

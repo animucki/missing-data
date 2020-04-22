@@ -249,7 +249,7 @@ fit.hybrid <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
   
   flog.trace(paste0('EM result for spm+class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',') ) )
 
-  #Calculate the Hessian by calculating the Richardson-extrapolated Jacobian of the gradient
+  #Calculate the Hessian by calculating the Richardson-extrapolated Jacobian of the gradient, unless a non-default hessMethod is selected
   hess <- jacobian(func = minusTwoScore, x = unlist(pars, use.names = F), method = hessMethod)
 
   return(list(res = res$value, pars = pars, hess = hess))
