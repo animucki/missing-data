@@ -1,5 +1,6 @@
 library(ggplot2)
 library(grid)
+library(gridExtra)
 library(tidyverse)
 
 # Summary of measures for table
@@ -45,16 +46,20 @@ resultSummary <- result %>%
 resultTable <- list()
 
 resultTable[[1]] <- t(resultSummary[,-c(1,2)])[1:5,]
+colnames(resultTable[[1]]) <- resultSummary %>% mutate(tmp = paste(scenario,model)) %>% pull(tmp)
 resultTable[[1]] <- format(resultTable[[1]], digits = 1, scientific = F, trim = T)
 
 resultTable[[2]] <- t(resultSummary[,-c(1,2)])[6:10,]
+colnames(resultTable[[2]]) <- resultSummary %>% mutate(tmp = paste(scenario,model)) %>% pull(tmp)
 resultTable[[2]] <- format(resultTable[[2]], digits = 2, scientific = F, trim = T)
 resultTable[[2]] <- matrix(paste0("(",resultTable[[2]],")"),5,10)
 
 resultTable[[3]] <- t(resultSummary[,-c(1,2)])[11:15,]
+colnames(resultTable[[3]]) <- resultSummary %>% mutate(tmp = paste(scenario,model)) %>% pull(tmp)
 resultTable[[3]] <- format(resultTable[[3]], nsmall = 1, trim = T)
 
 resultTable[[4]] <- t(resultSummary[,-c(1,2)])[16:20,]
+colnames(resultTable[[4]]) <- resultSummary %>% mutate(tmp = paste(scenario,model)) %>% pull(tmp)
 resultTable[[4]] <- format(resultTable[[4]], digits = 1, trim = T)
 resultTable[[4]] <- matrix(paste0("(",resultTable[[4]],")"),5,10)
 
@@ -182,7 +187,7 @@ for(i in seq_len(nrow(combinations))) {
 plots3 <- list()
 combinations3 <- expand.grid(estimand=estimands, scenario=levels(result2$scenario))
 for(i in seq_len(nrow(combinations3))) {
-  currentData <- result2 %>% filter(scenario==combinations3[i,"scenario"]) %>%
+  currentData <- result2 %>% filter(as.character(scenario)==combinations3[i,"scenario"]) %>%
     select("sample","model", as.character(combinations3[i,"estimand"]), paste0("se.",combinations3[i,"estimand"]))
   models <- levels(currentData$model)
 
@@ -229,6 +234,7 @@ for(i in seq_len(nrow(combinations3))) {
                               top=textGrob(label = paste0("Between-model plots for ", as.character(combinations3[i,"estimand"]),
                                                           " under ", as.character(combinations3[i,"scenario"])) ))
 }
+
 #export the type 3 plots
 for (i in seq_len(nrow(combinations3))) {
   ggsave(paste("./plots/plot3", combinations3[i,1], combinations3[i,2], ".pdf", sep="_"),
@@ -239,3 +245,6 @@ for (i in seq_len(nrow(combinations3))) {
          device = cairo_pdf
   )
 }
+
+#Univariate / exploratory info
+#TODO!
