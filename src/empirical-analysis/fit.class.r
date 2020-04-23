@@ -41,7 +41,7 @@ fit.class <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
                alpha = rep(0, pr-1), # remaining hazard parameters
                sigma.b = init[p+1],
                sigma = init[p+2],
-               theta = 1e-2, # variance of the frailty distribution
+               theta = 1, # variance of the frailty distribution
                mu = rep(0, nClasses-1),
                eta = rep(0, nClasses-1),
                lambda = rep(1, nClasses) # class-specific baseline hazard
@@ -180,7 +180,8 @@ fit.class <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
       out
       
     }
-    
+
+    #TODO: fix analytic gradient. Currently the outputs are incorrect, when compared to a numerical approximation.
     minusTwoScore <- function(x) {
 
       beta <- x[1:p]
@@ -314,11 +315,7 @@ fit.class <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
   
   flog.trace(paste0('EM result for class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')))
 
-  #TODO: find a better way
-  hess <- optimHess(unlist(pars, use.names = F), minusTwoLogLikelihood)
+  hess <- hessian(minusTwoLogLikelihood, unlist(pars)) #TODO: switch to jacobian of gradient, once gradient is fixed
 
-  #Calculate the Hessian by calculating the Richardson-extrapolated Jacobian of the gradient, unless a non-default hessMethod is selected
-  # hess <- jacobian(func = minusTwoScore, x = unlist(pars, use.names = F), method = hessMethod)
-  
-  return(list(res = res$value, pars = pars, hess = hess))
+  return(list(res = minusTwoLogLikelihood(unlist(pars)), pars = pars, hess = hess))
 }
