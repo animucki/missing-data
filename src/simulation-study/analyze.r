@@ -131,7 +131,7 @@ for(i in seq_along(estimands)) {
            width = 6,
            height = 3,
            units = "in")
-    ggsave(paste0("./plots/plot1_se.", estimands[i],".pdf"),
+    ggsave(paste0("./plots/plot1_se_", estimands[i],".pdf"),
            plot = plots1_se[[i]],
            device = cairo_pdf,
            width = 6,
@@ -144,8 +144,8 @@ for(i in seq_along(estimands)) {
            width = 5,
            height = 3,
            units = "in")
-    ggsave(paste0("./plots/plot1_se.", estimands[i],".pdf"),
-           plot = plots1_estimand[[i]],
+    ggsave(paste0("./plots/plot1_se_", estimands[i],".pdf"),
+           plot = plots1_se[[i]],
            device = cairo_pdf,
            width = 5,
            height = 3,
@@ -245,6 +245,3 @@ for (i in seq_len(nrow(combinations3))) {
          device = cairo_pdf
   )
 }
-
-#Univariate / exploratory info
-#TODO!
