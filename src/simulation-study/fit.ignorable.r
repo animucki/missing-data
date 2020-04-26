@@ -7,7 +7,7 @@ fit.ignorable <- function(d) {
   beta <- fixef(m)
   names(beta)[1] <- 'intercept'
   
-  seFixed <- diag(vcov(m))
+  seFixed <- sqrt(diag(vcov(m)))
   names(seFixed) <- paste0('se.',names(beta))
   
   #extract Wald standard errors for variance components (not included in output by default)
