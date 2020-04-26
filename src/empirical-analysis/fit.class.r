@@ -276,11 +276,10 @@ fit.class <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
 
     res <- optim(par=unlist(pars, use.names = F), 
                  fn=minusTwoLogLikelihood,
-                 # gr=minusTwoScore,oh
+                 # gr=minusTwoScore,
                  method = 'L-BFGS-B',
                  control = ctrl,
                  lower = lowerBounds, 
-                 upper = Inf,
                  hessian = FALSE
     )
 
