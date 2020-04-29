@@ -61,13 +61,13 @@ fit.hybrid <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
                        out <- out +
                          prod(dnorm( #outcome
                            x = y[i,],
-                           mean = X[5*(i-1) + 1:5,] %*% pars$beta +
+                           mean = X[ni*(i-1) + 1:ni,] %*% pars$beta +
                              bi + c(0, pars$mu)[k],
                            sd = pars$sigma), na.rm = T) *
                            prod(dbinom( #missingness
                              x = r[i,],
                              size = 1,
-                             prob = plogis( W[5*(i-1) + 1:5,] %*% pars$alpha + pars$gamma * bi + pars$delta * c(0, pars$mu)[k])
+                             prob = plogis( W[ni*(i-1) + 1:ni,] %*% pars$alpha + pars$gamma * bi + pars$delta * c(0, pars$mu)[k])
                            )) *
                            dnorm( #(normal) random intercept
                              x = bi,
@@ -91,12 +91,12 @@ fit.hybrid <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
           ciConditional[k] <-
             prod(dnorm( #outcome
               x = y[i,],
-              mean = X[5*(i-1) + 1:5,] %*% pars$beta + bVec[mc] + c(0, pars$mu)[k],
+              mean = X[ni*(i-1) + 1:ni,] %*% pars$beta + bVec[mc] + c(0, pars$mu)[k],
               sd = pars$sigma), na.rm = T) *
               prod(dbinom( #missingness
                 x = r[i,],
                 size = 1,
-                prob = plogis(W[5*(i-1) + 1:5,] %*% pars$alpha + pars$gamma * bVec[mc] + pars$delta * c(0, pars$mu)[k])
+                prob = plogis(W[ni*(i-1) + 1:ni,] %*% pars$alpha + pars$gamma * bVec[mc] + pars$delta * c(0, pars$mu)[k])
               )) *
               dnorm( #(normal) random intercept
                 x = bVec[mc],
@@ -249,8 +249,17 @@ fit.hybrid <- function(y, r, X, W, nClasses, init, hessMethod = "Richardson") {
   
   flog.trace(paste0('EM result for spm+class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',') ) )
 
+  parsL <- list(beta = res$par[1:p],
+                alpha = res$par[p + 1:pr],
+                gamma = res$par[p+pr+1],
+                delta = res$par[p+pr+2],
+                lsigma.b = res$par[p+pr+3],
+                lsigma = res$par[p+pr+4],
+                mu = res$par[p+pr+4 + 1:(nClasses-1)],
+                eta = res$par[p+pr+1 + (nClasses-1) + 1:(nClasses-1)])
+
   #Calculate the Hessian by calculating the Richardson-extrapolated Jacobian of the gradient, unless a non-default hessMethod is selected
-  hess <- jacobian(func = minusTwoScore, x = unlist(pars, use.names = F), method = hessMethod)
+  hess <- jacobian(func = minusTwoScore, x = unlist(parsL), method = hessMethod)
 
   return(list(res = res$value, pars = pars, hess = hess))
 }

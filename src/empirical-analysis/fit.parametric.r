@@ -46,13 +46,13 @@ fit.parametric <- function(y, r, X, W, init, hessMethod = "Richardson") {
                    log_pdf = function(bi) {
                      sum(dnorm(
                        x = y[i,],
-                       mean = X[5*(i-1) + 1:5,] %*% pars$beta + bi,
+                       mean = X[ni*(i-1) + 1:ni,] %*% pars$beta + bi,
                        sd = pars$sigma,
                        log = T), na.rm = T)+ #na.rm=T skips the missing observations
                        sum(dbinom(
                          x=r[i,],
                          size = 1,
-                         prob = plogis( W[5*(i-1) + 1:5,] %*% pars$alpha + pars$gamma * bi ),
+                         prob = plogis( W[ni*(i-1) + 1:ni,] %*% pars$alpha + pars$gamma * bi ),
                          log = T)) +
                        dnorm(
                          x=bi,
@@ -174,8 +174,15 @@ fit.parametric <- function(y, r, X, W, init, hessMethod = "Richardson") {
 
   flog.trace(paste0('EM result for spm: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')) )
 
-  #Calculate the Hessian by calculating the Richardson-extrapolated Jacobian of the gradient
-  hess <- jacobian(func = minusTwoScore, x = unlist(pars, use.names = F), method = hessMethod)
+  parsL <- list(beta = res$par[1:p],
+                alpha = res$par[p + 1:pr],
+                gamma = res$par[p + pr + 1],
+                lsigma.b = res$par[p + pr + 2],
+                lsigma = res$par[p + pr + 3]
+  )
 
-  return(list(res = res$value, pars = pars, hess = hess))
+  #Calculate the Hessian by calculating the Richardson-extrapolated Jacobian of the gradient
+  hess <- jacobian(func = minusTwoScore, x = unlist(parsL), method = hessMethod)
+
+  return(list(res = res$value, pars = parsL, hess = hess))
 }
