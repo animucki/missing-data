@@ -156,6 +156,7 @@ for(i in seq_along(estimands)) {
 #Type 2 plots: bivariate plots of est.se vs est. for each model/scenario combination
 combinations <- expand.grid(estimand=estimands, scenario=levels(result2$scenario),model=levels(result2$model))[,3:1] %>%
   filter(!(model=='spsp' & estimand =='sigma.b'))
+combinations <- left_join(combinations, data.frame(estimand=estimands, trueValue=trueValues))
 
 plots2 <- list()
 for(i in seq_len(nrow(combinations))) {
@@ -166,6 +167,7 @@ for(i in seq_len(nrow(combinations))) {
                         aes_string(x=as.character(combinations[i,"estimand"]), y=paste0("se.",combinations[i,"estimand"]))) +
     geom_density2d() +
     geom_point() +
+    geom_vline(xintercept = combinations[i,"trueValue"], linetype="dotted") +
     xlab(current_estNice) +
     ylab(current_seNice) #+
     # ggtitle( paste0("Est. SE vs estimand for ", combinations[i,"model"], " model under ", combinations[i,"scenario"]) )
