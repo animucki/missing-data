@@ -30,16 +30,21 @@ data <- dataWide %>%
                names_prefix = "FVC",
                values_to = "FVC") %>%
   mutate(time = as.integer(time),
-         CYC = as.integer(TXGROUP == 'A'))
+         CYC = as.integer(TXGROUP == 'A'),
+         observed = as.integer(!is.na(FVC)))
 
 #Ignorable analysis
-if(file.exists("data/m1.rds")) {
+if(file.exists("data/m1.rds") && file.exists("data/m1r.rds")) {
   flog.info("Reading ignorable model from file...")
   m1 <- readRDS("data/m1.rds")
+  m1r <- readRDS("data/m1r.rds")
 } else {
   flog.info("Fitting ignorable model...")
   m1 <- lmer(FVC ~ (1 | pt_id) + CYC * (time + FVC0 + MAXFIB), data = data, REML = F)
+  m1r <- glm(observed ~  CYC + time + FVC0 + MAXFIB, data = data, family = binomial())
+  #m1r <- glm(observed ~  1, data = data, family = binomial())
   saveRDS(m1, "data/m1.rds")
+  saveRDS(m1r, "data/m1r.rds")
 }
 
 y <- dataWide %>% select(starts_with("FVC")) %>% select(-1) %>% as.matrix
@@ -182,7 +187,10 @@ table1 <- lapply(models[-1],
                                         aic = m$res + 2*length(unlist(m$pars)),
                                         bic = m$res + log(nrow(y)) * length(unlist(m$pars))
                  )) %>% bind_rows
-table1 <- bind_rows(data.frame(neg2ll = deviance(m1), aic = AIC(m1), bic = BIC(m1)) , table1)
+table1 <- bind_rows(data.frame(neg2ll = deviance(m1) + deviance(m1r)) %>%
+                      mutate(aic = neg2ll + 2 * (10+5),
+                             bic = neg2ll + log(nrow(y)) * (10+5)),
+                    table1)
 rownames(table1) <- modelNames
 table1
 
