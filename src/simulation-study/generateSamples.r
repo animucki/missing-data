@@ -43,7 +43,19 @@ generateSamples <- function(samples = 10,
              time > 0 ~ pnorm(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept + delta*classIntercept)),
            rMNAR = rbinom(n = samples*participants*length(timePoints),
                           size = 1,
-                          prob = p)
+                          prob = p),
+           p3 = case_when(
+             near(time, 0) ~ 1,
+             time > 0 ~ pnorm(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept)),
+           rMNAR3 = rbinom(n = samples*participants*length(timePoints),
+                          size = 1,
+                          prob = p3),
+           p4 = case_when(
+             near(time, 0) ~ 1,
+             time > 0 ~ pnorm(alpha[1] + alpha[2]*time + alpha[3]*treatment + delta*classIntercept)),
+           rMNAR4 = rbinom(n = samples*participants*length(timePoints),
+                          size = 1,
+                          prob = p4)
     )
   
   #for MAR indicator, match to the non-random proportion of missingness 
@@ -63,9 +75,17 @@ generateSamples <- function(samples = 10,
     yMNAR = case_when(
       rMNAR == 1 ~ y,
       rMNAR == 0 ~ NA_real_
+    ),
+    yMNAR3 = case_when(
+      rMNAR3 == 1 ~ y,
+      rMNAR3 == 0 ~ NA_real_
+    ),
+    yMNAR4 = case_when(
+      rMNAR4 == 1 ~ y,
+      rMNAR4 == 0 ~ NA_real_
     )
   ) %>%
-    select(-y, -classIntercept, -p) #drop underlying values
+    select(-y, -classIntercept, -p, -p3, -p4) #drop underlying values
 
   flog.info('Data generation complete.')
   df

@@ -39,5 +39,12 @@ res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(
 flog.info('Fitting models to MNAR scenario...')
 res[[2]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MNAR')
 
+flog.info('Fitting models to MNAR1 scenario...')
+res[[3]] <- df1 %>% mutate(y=yMNAR1, r=rMNAR1) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MNAR1')
+
+flog.info('Fitting models to MNAR2 scenario...')
+res[[4]] <- df1 %>% mutate(y=yMNAR2, r=rMNAR2) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MNAR2')
+
+
 result <- bind_rows(res)
 write.csv2(result, './data/result.csv')
