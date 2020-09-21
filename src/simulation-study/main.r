@@ -22,7 +22,6 @@ source("src/common/utils.r")
 source("src/simulation-study/generateSamples.r")
 source("src/simulation-study/fit.ignorable.r")
 source("src/simulation-study/fit.parametric.r")
-#source("src/simulation-study/fit.hybrid.r")
 source("src/simulation-study/fit.class.r")
 source("src/simulation-study/fit.npsp.r")
 source("src/simulation-study/fit.multiple.r")
@@ -54,4 +53,4 @@ res[[4]] <- df1 %>% mutate(y=yMNAR4, r=rMNAR4) %>% group_split(sample) %>% mclap
 toc()
 
 result <- bind_rows(res)
-write.csv2(result, './data/result.csv')
+write.csv2(result, './data/result.csv', row.names = FALSE)
