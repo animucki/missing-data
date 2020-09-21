@@ -22,29 +22,36 @@ source("src/common/utils.r")
 source("src/simulation-study/generateSamples.r")
 source("src/simulation-study/fit.ignorable.r")
 source("src/simulation-study/fit.parametric.r")
-source("src/simulation-study/fit.hybrid.r")
+#source("src/simulation-study/fit.hybrid.r")
 source("src/simulation-study/fit.class.r")
 source("src/simulation-study/fit.npsp.r")
 source("src/simulation-study/fit.multiple.r")
 
-set.seed(666L)
-df1 <- generateSamples(samples = 100, participants = 200)
+set.seed(668L)
+df1 <- generateSamples(samples = 100, participants = 100)
 
 # ALL SAMPLES
 res <- list()
 
 flog.info('Fitting models to MAR scenario...')
+tic('mar')
 res[[1]] <- df1 %>% mutate(y=yMAR, r=rMAR) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MAR')
+toc()
 
 flog.info('Fitting models to MNAR scenario...')
+tic('mnar')
 res[[2]] <- df1 %>% mutate(y=yMNAR, r=rMNAR) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MNAR')
+toc()
 
-flog.info('Fitting models to MNAR1 scenario...')
-res[[3]] <- df1 %>% mutate(y=yMNAR1, r=rMNAR1) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MNAR1')
+flog.info('Fitting models to MNAR3 scenario...')
+tic('mnar3')
+res[[3]] <- df1 %>% mutate(y=yMNAR3, r=rMNAR3) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MNAR3')
+toc()
 
-flog.info('Fitting models to MNAR2 scenario...')
-res[[4]] <- df1 %>% mutate(y=yMNAR2, r=rMNAR2) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MNAR2')
-
+flog.info('Fitting models to MNAR4 scenario...')
+tic('mnar4')
+res[[4]] <- df1 %>% mutate(y=yMNAR4, r=rMNAR4) %>% group_split(sample) %>% mclapply(fit.multiple, mc.preschedule = F) %>% bind_rows %>% mutate(scenario='MNAR4')
+toc()
 
 result <- bind_rows(res)
 write.csv2(result, './data/result.csv')

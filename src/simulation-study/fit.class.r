@@ -1,4 +1,4 @@
-#Fit the class model of Lin, McCulloch, and Rosenheck
+#Fit the class model of Lin, McCulloch, and Rosenheck, but with Bernoulli missingness
 fit.class <- function(d) {
   key <- as.integer(d$sample[1])
   set.seed(4114L + key)
@@ -10,42 +10,36 @@ fit.class <- function(d) {
 
   # prepare grad0 (initial gradient)
   grad0 <- data.frame(grad.beta1 = 0, grad.beta2 = 0, grad.beta3 = 0,
-                      grad.alpha2 = 0, grad.alpha3 = 0,
-                      grad.sigma.b = 0, grad.sigma = 0, grad.theta = 0)
+                      grad.alpha1 = 0, grad.alpha2 = 0, grad.alpha3 = 0,
+                      grad.sigma.b = 0, grad.sigma = 0, grad.delta = 0)
   for (k in 2:nClasses) {
     grad0[[paste0('grad.mu',k)]] <- 0
   }
   for (k in 2:nClasses) {
     grad0[[paste0('grad.eta',k)]] <- 0
   }
-  for (k in 1:nClasses) {
-    grad0[[paste0('grad.lambda',k)]] <- 0
-  }
   
   #Fit ignorable model to find initial values for parameters
-  
   m <- lmer(y ~ (1|subject) + time + treatment,
             data=d, REML=F)
   pars <- list(beta = fixef(m),
-               alpha2 = 1e-2, # time parameter of the hazard function - the likelihood has a removable discontinuity at alpha2==0 so don't start too close to it
-               alpha3 = 0, # treatment parameter
-               sigma.b = as.data.frame(VarCorr(m))$sdcor[1],
-               sigma = sigma(m),
-               theta = 1e-2, # variance of the frailty distribution
+               alpha = c(0,0,0),
+               lsigma.b = log(as.data.frame(VarCorr(m))$sdcor[1]),
+               lsigma = log(sigma(m)),
+               delta = 0,
                mu = rep(0, nClasses-1),
-               eta = rep(0, nClasses-1),
-               lambda = rep(1, nClasses) # class-specific baseline hazard
+               eta = rep(0, nClasses-1)
   )
 
   # smart initialization to make separation of class intercepts more likely
-  pars$mu <- c(-1,1) * pars$sigma.b
+  pars$mu <- c(-1,1) * exp(pars$lsigma.b)
 
   currentPars <- unlist(pars)
-  
+
   iter <- 1
-  
-  mcSamples <- 10
-  
+
+  mcSamples <- 5
+
   minusTwoLogLikelihood <- NA
 
   dPredictedList <- list()
@@ -57,7 +51,7 @@ fit.class <- function(d) {
   doList <- d %>% filter(r==1) %>% group_split(subject)
 
   while (nTimesCriterionMet < 3 && iter <= 100) {
-    
+
     flog.trace(paste0('Sample ', key, ': EM iteration ', iter, ', MC samples: ', mcSamples,', pars = ', paste(format(unlist(pars), digits=0, nsmall=4), collapse = ','),
                       ', crit = ', format(crit, digits = 4)) )
 
@@ -73,20 +67,22 @@ fit.class <- function(d) {
       # find conditional distribution of ci for this subject
       pr <- rep(NA_real_, nClasses)
       for (k in 1:nClasses) {
-        c1 <- pars$lambda[k] * exp(pars$alpha2 * dList[[i]]$time + pars$alpha3 * dList[[i]]$treatment)
-        c2 <- - pars$lambda[k] / pars$alpha2 * (exp(pars$alpha2 * dList[[i]]$time)-1) * exp(pars$alpha3 * dList[[i]]$treatment)
-
         cik <- rep(0, nClasses)
         cik[k] <- 1
 
-        pr[k] <- dmultinormal(x = doList[[i]]$y,
-                              mean = pars$beta[1] + pars$beta[2] * doList[[i]]$time + pars$beta[3] * doList[[i]]$treatment + as.vector(c(0,pars$mu) %*% cik),
-                              sigma = as.vector( pars$sigma^2 * diag(nrow(doList[[i]])) + pars$sigma.b^2)) *
-          prod( ((c1/(1-pars$theta * c2))^(1-dList[[i]]$r) * (1-pars$theta * c2)^(-1/pars$theta))[-seq(from=1, to=nrow(d), by=nTimePoints)] ) *
-          dmultinomial( x = cik,
-                        size = 1,
-                        prob = softmax(c(0,pars$eta)))
-
+        pr[k] <- exp(dmultinormal(x = doList[[i]]$y,
+                                  mean = pars$beta[1] + pars$beta[2] * doList[[i]]$time + pars$beta[3] * doList[[i]]$treatment + as.vector(c(0,pars$mu) %*% cik),
+                                  sigma = as.vector( exp(pars$lsigma)^2 * diag(nrow(doList[[i]])) + exp(pars$lsigma.b)^2),
+                                  log = TRUE) +
+                       sum( dbinom(x = dList[[i]]$r,
+                                   prob = plogis(pars$alpha[1] + dList[[i]]$time * pars$alpha[2] + dList[[i]]$treatment * pars$alpha[3] +
+                                                   pars$delta * c(0, pars$mu)[k]),
+                                   size = 1,
+                                   log = TRUE)[-1] ) +
+                       dmultinomial( x = cik,
+                                     size = 1,
+                                     prob = softmax(c(0,pars$eta)),
+                                     log = TRUE))
       }
 
       ci <- rmultinomial(n = mcSamples, size = 1, prob = pr)
@@ -101,63 +97,63 @@ fit.class <- function(d) {
 
     # Minimization step
     minusTwoLogLikelihood <- function(x) {
-      
+
       beta <- x[1:3]
-      alpha2 <- x[4]
-      alpha3 <- x[5]
-      sigma.b <- x[6]
-      sigma <- x[7]
-      theta <- x[8]
-      mu <- x[8 + 1:(nClasses-1)]
-      eta <- x[8 + (nClasses-1) + 1:(nClasses-1)]
-      lambda <- x[8 + 2*(nClasses-1) + 1:nClasses]
+      alpha <- x[4:6]
+      lsigma.b <- x[7]
+      lsigma <- x[8]
+      delta <- x[9]
+      mu <- x[9 + 1:(nClasses-1)]
+      eta <- x[9 + (nClasses-1) + 1:(nClasses-1)]
 
-      c1wlk <- exp(alpha2 * d$time + alpha3 * d$treatment)
-      c2wlk <- - 1/ alpha2 * (exp(alpha2 * d$time)-1) * exp(alpha3 * d$treatment)
+      sigma.b <- exp(lsigma.b)
+      sigma <- exp(lsigma)
 
-      tmp <- lapply(dPredictedList, 
+      tmp <- lapply(dPredictedList,
                     function(dObj) {
-                      lambdak <- rep(as.vector(dObj %*% lambda), each = nTimePoints)
-                      c1 <- c1wlk * lambdak
-                      c2 <- c2wlk * lambdak
-
                       ll <- 0
                       for (i in 1:nSubjects) {
                         ll <- ll +
                           dmultinormal(x = doList[[i]]$y,
                                        mean = beta[1] + beta[2] * doList[[i]]$time + beta[3] * doList[[i]]$treatment + as.vector(c(0,mu) %*% dObj[i,]),
                                        sigma = as.vector( sigma^2 * diag(nrow(doList[[i]])) + sigma.b^2 ),
-                                       log = T)
+                                       log = T) +
+                          sum( dbinom(x = dList[[i]]$r,
+                                      prob = plogis(alpha[1] + dList[[i]]$time * alpha[2] + dList[[i]]$treatment * alpha[3] +
+                                                      delta * as.vector(c(0,mu) %*% dObj[i,]) ),
+                                      size = 1,
+                                      log = TRUE)[-1] )
                       }
-                          ll <- ll + sum( ((1-d$r) * log( c1/(1-theta*c2) ) - (1/theta)*log(1 - theta*c2))[-seq(from=1, to=nrow(d), by=nTimePoints)] ) +
-                          sum(dmultinomial( x = dObj,
-                                            size = 1,
-                                            prob = softmax(c(0,eta)),
-                                            log = T))
+                      ll <- ll +
+                        sum(dmultinomial( x = dObj,
+                                          size = 1,
+                                          prob = softmax(c(0,eta)),
+                                          log = T))
 
                       return(ll)
 
                     })
-      
+
       out <- -2*mean(unlist(tmp))
 
       out
-      
+
     }
-    
+
     minusTwoScore <- function(x) {
 
       beta <- x[1:3]
-      alpha2 <- x[4]
-      alpha3 <- x[5]
-      sigma.b <- x[6]
-      sigma <- x[7]
-      theta <- x[8]
-      mu <- x[8 + 1:(nClasses-1)]
-      eta <- x[8 + (nClasses-1) + 1:(nClasses-1)]
-      lambda <- x[8 + 2*(nClasses-1) + 1:nClasses]
+      alpha <- x[4:6]
+      lsigma.b <- x[7]
+      lsigma <- x[8]
+      delta <- x[9]
+      mu <- x[9 + 1:(nClasses-1)]
+      eta <- x[9 + (nClasses-1) + 1:(nClasses-1)]
 
-      out <- lapply(dPredictedList, 
+      sigma.b <- exp(lsigma.b)
+      sigma <- exp(lsigma)
+
+      out <- lapply(dPredictedList,
                     function(dObj) {
 
                       grad <- grad0
@@ -179,89 +175,70 @@ fit.class <- function(d) {
                         tau <- invSigma %*% (ei %*% t(ei) - (sigma^2 * diag(ni) + sigma.b^2)) %*% invSigma
 
                         # grad.beta and grad.mu can be calculated at once (score equations as derived by Jennrich and Schluchter)
-                        grad[,c(1,2,3,8 + 1:(nClasses-1))] <- grad[,c(1,2,3,8 + 1:(nClasses-1))] + t(Xi) %*% invSigma %*% ei
+                        grad[,c(1,2,3,9 + 1:(nClasses-1))] <- grad[,c(1,2,3,9 + 1:(nClasses-1))] + t(Xi) %*% invSigma %*% ei
                         # then, we have the variance components
 
-                        grad[,6] <- grad[,6] + 1/2 * tr(tau %*% (matrix(2*sigma.b, nrow = ni, ncol = ni)))
-                        grad[,7] <- grad[,7] + 1/2 * tr(tau %*% (2*sigma * diag(ni)))
+                        grad[,7] <- grad[,7] + 1/2 * tr(tau %*% (matrix(2*sigma.b, nrow = ni, ncol = ni)))
+                        grad[,8] <- grad[,8] + 1/2 * tr(tau %*% (2*sigma * diag(ni)))
 
                       }
 
-                      #remaining components can be calculated globally:
-                      lambdak <- rep(as.vector(dObj %*% lambda), each = nTimePoints)
+                      grad[,7] <- grad[,7] * sigma.b
+                      grad[,8] <- grad[,8] * sigma
 
-                      #grad.alpha2
-                      grad[4] <- -sum(
-                        ((exp(d$treatment*alpha3) * (exp(d$time*alpha2) - 1) * ((d$r-1)*theta - 1) * lambdak +
-                          d$time*alpha2 * ((d$r-1)*alpha2 + exp(d$treatment*alpha3) * (exp(d$time*alpha2) + theta - d$r*theta)*lambdak))/
-                          (alpha2*(alpha2 + exp(d$treatment*alpha3)*(exp(d$time*alpha2) - 1)*theta*lambdak))
-                        )[-seq(from = 1, to = nrow(d), by = nTimePoints)])
+                      #grad.alpha
+                      bernoulliResidual <- d$r - plogis(alpha[1] + d$time * alpha[2] + d$treatment * alpha[3] +
+                                                          delta * as.vector(dObj %*% c(0, mu)))
+                      grad[4] <- sum(bernoulliResidual[-seq(from = 1, to = nrow(d), by = nTimePoints)])
+                      grad[5] <- sum((d$time * bernoulliResidual)[-seq(from = 1, to = nrow(d), by = nTimePoints)])
+                      grad[6] <- sum((d$treatment * bernoulliResidual)[-seq(from = 1, to = nrow(d), by = nTimePoints)])
 
-                      #grad.alpha3
-                      grad[5] <- -sum(
-                        ((d$treatment*((d$r-1)*alpha2 + exp(d$treatment*alpha3) * (exp(d$time*alpha2) - 1)*lambdak))/
-                          (alpha2 + exp(d$treatment*alpha3) * (exp(d$time*alpha2) - 1) * theta * lambdak)
-                        )[-seq(from = 1, to = nrow(d), by = nTimePoints)])
-
-                      #grad.theta
-                      grad[8] <- sum(
-                        ((exp(d$treatment*alpha3) * (exp(d$time*alpha2) - 1) * theta * ((d$r-1)*theta -1)*lambdak) /
-                          (alpha2 + exp(d$treatment*alpha3) * (exp(d$time*alpha2) - 1) * theta * lambdak) +
-                          log(1 + (exp(d$treatment*alpha3) * (exp(d$time*alpha2) - 1) * theta * lambdak)/alpha2)
-                        )[-seq(from = 1, to = nrow(d), by = nTimePoints)])/theta^2
+                      #grad.delta
+                      grad[9] <- sum((rep(as.vector(dObj %*% c(0, mu)), each = nTimePoints) *
+                        bernoulliResidual)[-seq(from = 1, to = nrow(d), by = nTimePoints)])
 
                       #grad.eta
-                      grad[,8 + (nClasses-1) + 1:(nClasses-1)] <- colSums(dObj[,-1] - rep(softmax(c(0,eta))[-1], each = nrow(dObj)))
-
-                      #grad.lambda
-                      dlambdak <- ((1-d$r)*alpha2 - exp(d$treatment *alpha3)*(exp(d$time *alpha2)-1)*lambdak ) /
-                        (lambdak * (alpha2 + exp(d$treatment *alpha3)*(exp(d$time *alpha2)-1)*theta*lambdak ))
-                      dlambdak <- dlambdak[-seq(from = 1, to = nrow(d), by = nTimePoints)]
-                      grad[,8 + 2*(nClasses-1) + 1:nClasses] <-
-                        colSums(matrix(rep(dlambdak, times = nClasses), ncol = nClasses) *
-                                  dObj[rep(seq_len(nrow(dObj)), each=nTimePoints-1),])
+                      grad[,9 + (nClasses-1) + 1:(nClasses-1)] <- colSums(dObj[,-1] - rep(softmax(c(0,eta))[-1], each = nrow(dObj)))
 
                       return(grad)
                     }) %>% bind_rows %>% summarize_all(mean) %>% unlist
 
       -2*out
     }
-    
-    lowerBounds <- rep(-Inf, length(unlist(pars)))
-    lowerBounds[c(6,7,8, 8 + 2*(nClasses-1) + 1:nClasses, length(unlist(pars)))] <- 1e-4 #the three variances, and the lambdas, have to be positive
 
-    # ctrl <- list(maxit=min(10*iter,100), trace = 6, REPORT = 1)
-    ctrl <- list(maxit=min(10*iter,100))
-    if(nTimesCriterionMet == 2) ctrl$maxit <- 250
+    #lowerBounds <- rep(-Inf, length(unlist(pars)))
+    #lowerBounds[c(6,7,8, 8 + 2*(nClasses-1) + 1:nClasses, length(unlist(pars)))] <- 1e-4 #the three variances, and the lambdas, have to be positive
 
-    res <- optim(par=unlist(pars, use.names = F), 
+    #ctrl <- list(trace = 6, REPORT = 1)
+    ctrl <- list(maxit=min(25*iter,100), reltol = 1e-4)
+    if(nTimesCriterionMet == 2) ctrl <- list(maxit=250, reltol = 1e-8)
+
+    res <- optim(par=unlist(pars, use.names = F),
                  fn=minusTwoLogLikelihood,
                  gr=minusTwoScore,
-                 method = 'L-BFGS-B',
+                 method = 'BFGS',
                  control = ctrl,
-                 lower = lowerBounds, 
-                 upper = Inf,
+                 #lower = lowerBounds,
+                 #upper = Inf,
                  hessian = FALSE
     )
 
-    if(res$convergence == 1 && nTimesCriterionMet >= 2) flog.error('class likelihood did not converge within 250 iterations in final step')
-    if(res$convergence > 1) flog.error(paste('class likelihood did not converge, code',res$convergence))
-    
+    if(res$convergence == 1 && nTimesCriterionMet >= 2) flog.warn('class likelihood did not converge within 250 iterations in final step')
+    if(res$convergence > 0) flog.warn(paste('Class model likelihood did not converge, code',res$convergence))
+
     pars <- list(beta = res$par[1:3],
-                 alpha2 = res$par[4],
-                 alpha3 = res$par[5],
-                 sigma.b = res$par[6],
-                 sigma = res$par[7],
-                 theta = res$par[8],
-                 mu = res$par[8 + 1:(nClasses-1)],
-                 eta = res$par[8 + (nClasses-1) + 1:(nClasses-1)],
-                 lambda = res$par[8 + 2*(nClasses-1) + 1:nClasses]
+                 alpha = res$par[4:6],
+                 lsigma.b = res$par[7],
+                 lsigma = res$par[8],
+                 delta = res$par[9],
+                 mu = res$par[9 + 1:(nClasses-1)],
+                 eta = res$par[9 + (nClasses-1) + 1:(nClasses-1)]
     )
 
     previousPars <- currentPars
     currentPars <- unlist(pars)
 
-    mcSamples <- floor(min(mcSamples * 1.2 + 2, 500)) #increase the sample size slowly
+    mcSamples <- floor(min(mcSamples + 5, 250)) #increase the sample size slowly
     iter <- iter + 1
 
     #stopping criteria calculation
@@ -272,16 +249,26 @@ fit.class <- function(d) {
       nTimesCriterionMet <- 0
     }
   }
-  
+
   flog.trace(paste0('Sample ', key, ': EM result for class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')))
-  
+
   x0 <- unlist(pars)
-  hh <- optimHess(par = x0[c(1,2,3,6,7)],
-                  fn = function(x) minusTwoLogLikelihood(c(x[c(1,2,3)], x0[c(4,5)], x[c(4,5)], x0[8:length(x0)])),
-                  gr = function(x) minusTwoScore(c(x[c(1,2,3)], x0[c(4,5)], x[c(4,5)], x0[8:length(x0)]))[c(1,2,3,6,7)]
+  hh1 <- optimHess(par = x0,
+                  fn = minusTwoLogLikelihood,
+                  gr = minusTwoScore
   )
-  
-  out <- c(key, pars$beta, pars$sigma.b, pars$sigma, sqrt(diag(2*solve(hh))) )
+
+  ainv <- rep(1,length(x0))
+  ainv[7] <- exp(pars$lsigma.b)
+  ainv[8] <- exp(pars$lsigma)
+  gradi <- rep(0, length(x0))
+  grads <- minusTwoScore(x0)
+  gradi[7] <- grads[7]/exp(pars$lsigma.b)^2
+  gradi[8] <- grads[8]/exp(pars$lsigma)^2
+
+  hh <- diag(ainv) %*% hh1 %*% diag(ainv) + diag(gradi)
+
+  out <- c(key, pars$beta, exp(pars$lsigma.b), exp(pars$lsigma), sqrt(diag(2*solve(hh))[c(1,2,3,7,8)]) )
   names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
                   'se.intercept', 'se.time', 'se.treatment', 'se.sigma.b', 'se.sigma')
   as.data.frame(as.list(out))

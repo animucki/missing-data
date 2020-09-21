@@ -15,8 +15,8 @@ fit.parametric <- function(d) {
   pars <- list(beta = fixef(m),
                alpha = c(0,0,0),
                gamma = 0,
-               sigma.b = as.data.frame(VarCorr(m))$sdcor[1],
-               sigma = sigma(m)
+               lsigma.b = log(as.data.frame(VarCorr(m))$sdcor[1]),
+               lsigma = log(sigma(m))
                )
   
   ##Loop for MCEM
@@ -55,7 +55,7 @@ fit.parametric <- function(d) {
                      sum(dnorm(
                        x=di$y,
                        mean=pars$beta[1] + di$time * pars$beta[2] + di$treatment * pars$beta[3] + bi,
-                       sd = pars$sigma,
+                       sd = exp(pars$lsigma),
                        log = T), na.rm = T)+ #na.rm=T skips the missing observations
                        sum(dbinom(
                          x=di$r,
@@ -64,7 +64,7 @@ fit.parametric <- function(d) {
                          log = T)[-1]) + #the [-1] skips the baseline observation
                        dnorm(
                          x=bi,
-                         sd = pars$sigma.b,
+                         sd = exp(pars$lsigma.b),
                          log = T)
                    })
 
@@ -85,20 +85,23 @@ fit.parametric <- function(d) {
       beta <- x[1:3]
       alpha <- x[4:6]
       gamma <- x[7]
-      sigma.b <- x[8]
-      sigma <- x[9]
-      
+      lsigma.b <- x[8]
+      lsigma <- x[9]
+
+      sigma.b <- exp(lsigma.b)
+      sigma <- exp(lsigma)
+
       temp <- lapply(dPredictedList, 
                        function(dPredicted) {
                          sum(dnorm(
                            x=dPredicted$y,
-                           mean=beta[1] + Xtemp %*% beta[c(2,3)] + dPredicted$bDraw, 
+                           mean=beta[1] + Xtemp %*% beta[-1] + dPredicted$bDraw,
                            sd = sigma, 
                            log = T), na.rm = T)+ #na.rm=T skips the missing observations
                            sum(dbinom(
                              x=dPredicted$r, 
                              size = 1, 
-                             prob = plogis(alpha[1] + Xtemp %*% alpha[c(2,3)] + gamma * dPredicted$bDraw ),
+                             prob = plogis(alpha[1] + Xtemp %*% alpha[-1] + gamma * dPredicted$bDraw ),
                              log = T)[-seq(from = 1, to = nrow(d), by=nTimePoints)]) + #the seq(...) expression skips the baseline observations
                            sum(dnorm(
                              x=dPredicted$bDraw[seq(1, nrow(dPredicted), by = nTimePoints)], 
@@ -119,8 +122,11 @@ fit.parametric <- function(d) {
       beta <- x[1:3]
       alpha <- x[4:6]
       gamma <- x[7]
-      sigma.b <- x[8]
-      sigma <- x[9]
+      lsigma.b <- x[8]
+      lsigma <- x[9]
+
+      sigma.b <- exp(lsigma.b)
+      sigma <- exp(lsigma)
 
       temp <- lapply(dPredictedList, 
                      function(dPredicted) {
@@ -134,8 +140,8 @@ fit.parametric <- function(d) {
                          grad.alpha2 = sum( (dPredicted$time * bernoulliResidual)[-seq(1, nrow(dPredicted), by = nTimePoints)] ),
                          grad.alpha3 = sum( (dPredicted$treatment * bernoulliResidual)[-seq(1, nrow(dPredicted), by = nTimePoints)] ),
                          grad.gamma = sum( (dPredicted$bDraw * bernoulliResidual)[-seq(1, nrow(dPredicted), by = nTimePoints)] ),
-                         grad.sigma.b = sum( (dPredicted$bDraw[seq(1, nrow(dPredicted), by = nTimePoints)]^2 - sigma.b^2 )/sigma.b^3),
-                         grad.sigma = sum( normalResidual^2 - sigma^2, na.rm = TRUE )/sigma^3)
+                         grad.sigma.b = sum( (dPredicted$bDraw[seq(1, nrow(dPredicted), by = nTimePoints)]^2 - sigma.b^2 )/sigma.b^2),
+                         grad.sigma = sum( normalResidual^2 - sigma^2, na.rm = TRUE )/sigma^2)
                      }) %>% bind_rows %>% summarize_all(mean)
       
       out <- -2*unlist(temp, use.names = F)
@@ -147,26 +153,33 @@ fit.parametric <- function(d) {
     res <- optim(par=unlist(pars, use.names = F), 
                  fn=minusTwoLogLikelihood,
                  gr=minusTwoScore,
-                 method = 'L-BFGS-B',
-                 control = list(factr=1e9),
-                 lower = c(rep(-Inf, 7), 1e-4, 1e-4),
-                 upper = Inf,
+                 method = 'BFGS',
+                 #control = list(factr=1e9),
+                 #lower = c(rep(-Inf, 7), 1e-4, 1e-4),
+                 #upper = Inf,
                  hessian = FALSE
                  )
     
-    if(res$convergence > 0) flog.error(paste('Parametric model likelihood did not converge, code',res$convergence))
-    
+    if(res$convergence > 0) {
+      flog.warn(paste('Parametric model likelihood did not converge, code',res$convergence))
+      out <- c(key, rep(NA_real_, 2 * (length(pars$beta) + 2)) )
+      names(out) <- c('sample','intercept', 'time', 'treatment', 'lsigma.b', 'lsigma',
+                      'se.intercept', 'se.time', 'se.treatment', 'se.lsigma.b', 'se.lsigma')
+      return(as.data.frame(as.list(out)))
+    }
+
     pars <- list(beta = res$par[1:3],
                  alpha = res$par[4:6],
                  gamma = res$par[7],
-                 sigma.b = res$par[8],
-                 sigma = res$par[9])
+                 lsigma.b = res$par[8],
+                 lsigma = res$par[9]
+    )
 
     previousPars <- currentPars
     currentPars <- unlist(pars)
     
 
-    mcSamples <- as.integer(min(mcSamples * 1.25, 250)) #increase the sample size slowly
+    mcSamples <- as.integer(min(mcSamples + 5, 250)) #increase the sample size slowly
     iter <- iter + 1
 
     #stopping criteria calculation
@@ -183,11 +196,20 @@ fit.parametric <- function(d) {
   
   x0 <- unlist(pars)
   # hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])), x0[c(1,2,3,8,9)])
-  hh <- optimHess(par = x0[c(1,2,3,8,9)], 
-                  fn = function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])),
-                  gr = function(x) minusTwoScore(c(x[1:3], x0[4:7], x[4:5]))[c(1,2,3,8,9)])
-  
-  out <- c(key, pars$beta, pars$sigma.b, pars$sigma, sqrt(diag(2*solve(hh))) )
+  hh1 <- optimHess(par = x0,
+                   fn = minusTwoLogLikelihood,
+                   gr = minusTwoScore)
+  ainv <- rep(1,length(x0))
+  ainv[length(ainv)-2] <- exp(pars$lsigma.b)
+  ainv[length(ainv)-1] <- exp(pars$lsigma)
+  gradi <- rep(0, length(x0))
+  grads <- minusTwoScore(x0)
+  gradi[length(ainv)-2] <- grads[length(ainv)-2]/exp(pars$lsigma.b)^2
+  gradi[length(ainv)-1] <- grads[length(ainv)-1]/exp(pars$lsigma)^2
+
+  hh <- diag(ainv) %*% hh1 %*% diag(ainv) + diag(gradi)
+
+  out <- c(key, pars$beta, exp(pars$lsigma.b), exp(pars$lsigma), sqrt(diag(2*solve(hh))[c(1,2,3,8,9)]) )
   names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
                   'se.intercept', 'se.time', 'se.treatment', 'se.sigma.b', 'se.sigma')
   as.data.frame(as.list(out))
