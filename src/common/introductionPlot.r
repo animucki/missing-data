@@ -80,6 +80,7 @@ for (yCol in 1:(ncol(d)-1)) {
   m <- lm(d[,1+yCol] ~ d$y1)
 
   print(rbind(mu_y + c(0, -se_y, +se_y)*qt(0.975,n-1), cbind(coef(m),confint(m))))
+  print(cov2cor(vcov(m)))
 
   dRes <- rbind(dRes, c(mu_y, coef(m), se_y, summary(m)$coefficients[,2], use.names = F))
 }

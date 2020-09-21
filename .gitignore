@@ -40,3 +40,7 @@ log/
 
 .idea/
 /plots/
+
+err.txt
+
+out.txt
