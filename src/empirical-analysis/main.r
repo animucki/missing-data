@@ -41,8 +41,7 @@ if(file.exists("data/m1.rds") && file.exists("data/m1r.rds")) {
 } else {
   flog.info("Fitting ignorable model...")
   m1 <- lmer(FVC ~ (1 | pt_id) + CYC * (time + FVC0 + MAXFIB), data = data, REML = F)
-  m1r <- glm(observed ~  CYC + time + FVC0 + MAXFIB, data = data, family = binomial())
-  #m1r <- glm(observed ~  1, data = data, family = binomial())
+  m1r <- glm(observed ~ 0, data = data, family = binomial())
   saveRDS(m1, "data/m1.rds")
   saveRDS(m1r, "data/m1r.rds")
 }
@@ -188,8 +187,8 @@ table1 <- lapply(models[-1],
                                         bic = m$res + log(nrow(y)) * length(unlist(m$pars))
                  )) %>% bind_rows
 table1 <- bind_rows(data.frame(neg2ll = deviance(m1) + deviance(m1r)) %>%
-                      mutate(aic = neg2ll + 2 * (10+5),
-                             bic = neg2ll + log(nrow(y)) * (10+5)),
+                      mutate(aic = neg2ll + 2 * 10,
+                             bic = neg2ll + log(nrow(y)) * 10),
                     table1)
 rownames(table1) <- modelNames
 table1
