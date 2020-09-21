@@ -20,9 +20,9 @@ generateSamples <- function(samples = 10,
                             delta = 1) {
   
   flog.info(paste0('Generating ', samples, ' samples...'))
-  
-  flog.debug('Arguments:')
-  flog.debug(str(as.list(match.call())[-1], no.list = F))
+
+  argl <- as.list(match.call())[-1]
+  flog.debug(paste(names(argl),unlist(argl),sep=": ", collapse = ", "))
   
   if(participants %% 2) flog.warn('The simulation assumes an even number of participants. Results may be nonsensical.')
   
