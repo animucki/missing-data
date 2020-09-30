@@ -4,7 +4,7 @@ library(gridExtra)
 library(tidyverse)
 
 # Summary of measures for table
-result <- read.csv2('./data/result.csv', stringsAsFactors = F, row.names = 1)
+result <- read.csv2('./data/result.csv', stringsAsFactors = F)
 resultSummary <- result %>%
   mutate(bias_intercept = -1.2 - intercept,
          bias_time = 0.5 - time,
@@ -77,7 +77,7 @@ problematicCells[,5+colOrder]
 #Type 1 plots: univariate plots to assess the overall distribution and outliers
 
 result2 <- result
-result2$scenario <- factor(result2$scenario, levels = c("MAR","MNAR"), ordered = T)
+result2$scenario <- factor(result2$scenario, levels = c("MAR","MNAR","MNAR3","MNAR4"), ordered = T)
 result2$model <- factor(result2$model, levels = c("ignorable","spm","hybrid","class","spsp"), ordered = T)
 
 estimands <- c('intercept', 'time', 'treatment', 'sigma.b', 'sigma')
@@ -106,7 +106,7 @@ for(i in seq_along(estimands)) {
 
   if(i<5) plots1_estimand[[i]] <- plots1_estimand[[i]] + theme(legend.title = element_blank(), legend.position = "none")
 }
-# plots1_estimand
+ plots1_estimand
 
 plots1_se <- list()
 for(i in seq_along(estimands)) {
