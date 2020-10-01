@@ -22,12 +22,13 @@ source("src/common/utils.r")
 source("src/simulation-study/generateSamples.r")
 source("src/simulation-study/fit.ignorable.r")
 source("src/simulation-study/fit.parametric.r")
+source("src/simulation-study/fit.tseng.r")
 source("src/simulation-study/fit.class.r")
 source("src/simulation-study/fit.npsp.r")
 source("src/simulation-study/fit.multiple.r")
 
 set.seed(668L)
-df1 <- generateSamples(samples = 100, participants = 100)
+df1 <- generateSamples(samples = 1, participants = 100)
 
 # ALL SAMPLES
 res <- list()
