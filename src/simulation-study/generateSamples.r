@@ -15,6 +15,7 @@ generateSamples <- function(samples = 10,
                             beta = c(-1.2, 0.5, -1.5),
                             sigma = sqrt(0.5),
                             sigma.b = 0.5,
+                            rho.b = 0.9,
                             alpha = c(-1, -0.5, 2.5),
                             gamma = 1.5,
                             delta = 1) {
@@ -28,25 +29,36 @@ generateSamples <- function(samples = 10,
   
   #generate dataset
   #first, non-time-dependent part
+  # - of which, the random intercepts are Gaussian copula s.t. they are marginally
+  #   bi1,bi2 ~iid~ U[ -sqrt(3)*sigma.b, sqrt(3)*sigma.b ]
+  #   with forall i: corr(bi1, bi2) = rho.b
+
+  # this creates a bivariate sample ~ U[0,1] with correlation rho.b using the Gaussian copula
+  uMat <- pnorm(rmultinormal(n = samples*participants, sigma = c(1, rho.b, rho.b, 1)))
+
+  # this is a scaling step
+  bMat <- 2 * sqrt(3) * sigma.b * (uMat - 0.5)
+
   df <- data.frame(
     sample = as.factor(rep(1:samples, each = participants)),
     subject = as.factor(rep(1:participants, times = samples)),
     classIntercept = rmultinomial(n = samples*participants, size=1, prob=c(3,1,2)) %*% c(-2,0,3),
-    randIntercept = runif(n = samples*participants, min = -sqrt(3)*sigma.b, max = sqrt(3)*sigma.b),
+    randIntercept1 = bMat[,1],
+    randIntercept2 = bMat[,2],
     treatment = c(0,1)
   ) %>%
     uncount(length(timePoints)) %>% #this duplicates each row to make space for the repeated observations
     mutate(time = rep(timePoints, times = samples*participants),
-           y = beta[1] + beta[2]*time + beta[3]*treatment + randIntercept + classIntercept + rnorm(samples*participants*length(timePoints), sd=sigma),
+           y = beta[1] + beta[2]*time + beta[3]*treatment + randIntercept1 + classIntercept + rnorm(samples*participants*length(timePoints), sd=sigma),
            p = case_when(
              near(time, 0) ~ 1,
-             time > 0 ~ pnorm(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept + delta*classIntercept)),
+             time > 0 ~ pnorm(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept1 + delta*classIntercept)),
            rMNAR = rbinom(n = samples*participants*length(timePoints),
                           size = 1,
                           prob = p),
            p3 = case_when(
              near(time, 0) ~ 1,
-             time > 0 ~ pnorm(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept)),
+             time > 0 ~ pnorm(alpha[1] + alpha[2]*time + alpha[3]*treatment + gamma*randIntercept2)),
            rMNAR3 = rbinom(n = samples*participants*length(timePoints),
                           size = 1,
                           prob = p3),
@@ -85,7 +97,7 @@ generateSamples <- function(samples = 10,
       rMNAR4 == 0 ~ NA_real_
     )
   ) %>%
-    select(-y, -classIntercept, -p, -p3, -p4) #drop underlying values
+    select(!c(y, classIntercept, p, p3, p4, randIntercept1, randIntercept2)) #drop underlying values
 
   flog.info('Data generation complete.')
   df
