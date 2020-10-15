@@ -14,7 +14,7 @@ library(tidyverse)
 
 options(mc.cores = parallel::detectCores() - 1)
 
-flog.appender(appender.file(paste0('./log/sim-', format(Sys.time(), "%Y-%m-%d_%Hh%Mm%Ss"), ".log"))) %>% invisible
+#flog.appender(appender.file(paste0('./log/sim-', format(Sys.time(), "%Y-%m-%d_%Hh%Mm%Ss"), ".log"))) %>% invisible
 flog.threshold('trace') %>% invisible
 
 flog.info('Sourcing functions...')
