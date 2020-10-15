@@ -50,7 +50,7 @@ fit.parametric <- function(d) {
 
       di <- d %>% filter(subject==i)
 
-      bVec <- arms(n_samples = mcSamples, lower = -10, upper = 10, metropolis = FALSE,
+      bVec <- armspp::arms(n_samples = mcSamples, lower = -10, upper = 10, metropolis = FALSE,
                    log_pdf = function(bi) {
                      sum(dnorm(
                        x=di$y,

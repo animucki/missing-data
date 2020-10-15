@@ -16,7 +16,7 @@ fit.tseng <- function(d) {
                alpha = c(0,0,0),
                lsigma.b1 = log(as.data.frame(VarCorr(m))$sdcor[1]),
                lsigma.b2 = log(as.data.frame(VarCorr(m))$sdcor[1]),
-               tau.b = 0,
+               rho.b = 0,
                lsigma = log(sigma(m))
   )
 
@@ -54,7 +54,7 @@ fit.tseng <- function(d) {
 
       bMat <- dlm::arms(n.sample = mcSamples,
                         y.start = c(0,0),
-                        indFunc = function(bi) { sum(bi^2) < 10 },
+                        indFunc = function(bi) { all( bi^2 < 6*exp(c(pars$lsigma.b1, pars$lsigma.b2)) ) },
                         myldens = function(bi) {
                           sum(dnorm(
                             x=di$y,
@@ -68,7 +68,10 @@ fit.tseng <- function(d) {
                               log = T)[-1]) + #the [-1] skips the baseline observation
                             dmultinormal(
                               x = bi,
-                              sigma = c(exp(2*pars$lsigma.b1), pars$tau.b, pars$tau.b, exp(2*pars$lsigma.b2)),
+                              sigma = c(exp(2*pars$lsigma.b1),
+                                        exp(pars$lsigma.b1 + pars$lsigma.b2) * pars$rho.b,
+                                        exp(pars$lsigma.b1 + pars$lsigma.b2) * pars$rho.b,
+                                        exp(2*pars$lsigma.b2)),
                               log = T)
                         }
       )
@@ -93,7 +96,7 @@ fit.tseng <- function(d) {
       alpha <- x[4:6]
       lsigma.b1 <- x[7]
       lsigma.b2 <- x[8]
-      tau.b <- x[9]
+      rho.b <- x[9]
       lsigma <- x[10]
 
       sigma.b1 <- exp(lsigma.b1)
@@ -116,7 +119,10 @@ fit.tseng <- function(d) {
                            x=matrix(c(dPredicted$b1Draw[seq(1, nrow(dPredicted), by = nTimePoints)],
                                       dPredicted$b2Draw[seq(1, nrow(dPredicted), by = nTimePoints)]),
                                     ncol = 2),
-                           sigma = c(sigma.b1^2, tau.b, tau.b, sigma.b2^2),
+                           sigma = c(sigma.b1^2,
+                                     sigma.b1 * sigma.b2 * rho.b,
+                                     sigma.b1 * sigma.b2 * rho.b,
+                                     sigma.b2^2),
                            log = T))
                      })
 
@@ -134,14 +140,17 @@ fit.tseng <- function(d) {
       alpha <- x[4:6]
       lsigma.b1 <- x[7]
       lsigma.b2 <- x[8]
-      tau.b <- x[9]
+      rho.b <- x[9]
       lsigma <- x[10]
 
       sigma.b1 <- exp(lsigma.b1)
       sigma.b2 <- exp(lsigma.b2)
       sigma <- exp(lsigma)
 
-      sigma_invt <- t(solve(matrix(c(sigma.b1^2, tau.b, tau.b, sigma.b2^2), ncol = 2)))
+      sigma_invt <- t(solve(matrix(c(sigma.b1^2,
+                                     tau.b,
+                                     tau.b,
+                                     sigma.b2^2), ncol = 2)))
 
       temp <- lapply(dPredictedList,
                      function(dPredicted) {
@@ -184,13 +193,17 @@ fit.tseng <- function(d) {
 
     }
 
+    lowerBounds <- rep(-Inf, 10)
+    lowerBounds[9] <- -1
+    upperBounds <- -lowerBounds
+
     res <- optim(par=unlist(pars, use.names = F),
                  fn=minusTwoLogLikelihood,
                  #gr=minusTwoScore,
-                 method = 'BFGS',
-                 control = list(trace=1, REPORT=1),
-                 #lower = c(rep(-Inf, 7), 1e-4, 1e-4),
-                 #upper = Inf,
+                 method = 'L-BFGS-B',
+                 control = list(trace=1),
+                 lower = lowerBounds,
+                 upper = upperBounds,
                  hessian = FALSE
     )
 
@@ -206,7 +219,7 @@ fit.tseng <- function(d) {
                  alpha = res$par[4:6],
                  lsigma.b1 = res$par[7],
                  lsigma.b2 = res$par[8],
-                 tau.b = res$par[9],
+                 rho.b = res$par[9],
                  lsigma = res$par[10]
     )
 
