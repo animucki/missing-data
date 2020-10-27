@@ -50,7 +50,7 @@ fit.parametric <- function(d) {
 
       di <- d %>% filter(subject==i)
 
-      bVec <- armspp::arms(n_samples = mcSamples, lower = -10, upper = 10, metropolis = FALSE,
+      bVec <- armspp::arms(n_samples = mcSamples, lower = -6*exp(pars$lsigma.b), upper = 6*exp(pars$lsigma.b), metropolis = FALSE,
                    log_pdf = function(bi) {
                      sum(dnorm(
                        x=di$y,
@@ -196,9 +196,13 @@ fit.parametric <- function(d) {
   
   x0 <- unlist(pars)
   # hh <- hessian(function(x) minusTwoLogLikelihood(c(x[1:3], x0[4:7], x[4:5])), x0[c(1,2,3,8,9)])
-  hh1 <- optimHess(par = x0,
-                   fn = minusTwoLogLikelihood,
-                   gr = minusTwoScore)
+  # hh1 <- optimHess(par = x0,
+  #                  fn = minusTwoLogLikelihood,
+  #                  gr = minusTwoScore)
+
+  hh1 <- numDeriv::jacobian(func = minusTwoScore,
+                            x = x0)
+
   ainv <- rep(1,length(x0))
   ainv[length(ainv)-2] <- exp(pars$lsigma.b)
   ainv[length(ainv)-1] <- exp(pars$lsigma)

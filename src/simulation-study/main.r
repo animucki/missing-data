@@ -14,7 +14,7 @@ library(tidyverse)
 
 options(mc.cores = parallel::detectCores() - 1)
 
-#flog.appender(appender.file(paste0('./log/sim-', format(Sys.time(), "%Y-%m-%d_%Hh%Mm%Ss"), ".log"))) %>% invisible
+flog.appender(appender.file(paste0('./log/sim-', format(Sys.time(), "%Y-%m-%d_%Hh%Mm%Ss"), ".log"))) %>% invisible
 flog.threshold('trace') %>% invisible
 
 flog.info('Sourcing functions...')
@@ -22,13 +22,13 @@ source("src/common/utils.r")
 source("src/simulation-study/generateSamples.r")
 source("src/simulation-study/fit.ignorable.r")
 source("src/simulation-study/fit.parametric.r")
-source("src/simulation-study/fit.tseng.r")
+source("src/simulation-study/fit.tseng.direct.r")
 source("src/simulation-study/fit.class.r")
 source("src/simulation-study/fit.npsp.r")
 source("src/simulation-study/fit.multiple.r")
 
 set.seed(668L)
-df1 <- generateSamples(samples = 1, participants = 100)
+df1 <- generateSamples(samples = 50, participants = 100)
 
 # ALL SAMPLES
 res <- list()
@@ -54,4 +54,5 @@ res[[4]] <- df1 %>% mutate(y=yMNAR4, r=rMNAR4) %>% group_split(sample) %>% mclap
 toc()
 
 result <- bind_rows(res)
-write.csv2(result, './data/result.csv', row.names = FALSE)
+View(result)
+write.csv2(result, './data/result-allmodels-samples-0001-to-0050.csv', row.names = FALSE)

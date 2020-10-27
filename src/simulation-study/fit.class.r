@@ -253,10 +253,13 @@ fit.class <- function(d) {
   flog.trace(paste0('Sample ', key, ': EM result for class: pars = ', paste(format(unlist(pars), digits=4, nsmall=4), collapse = ',')))
 
   x0 <- unlist(pars)
-  hh1 <- optimHess(par = x0,
-                  fn = minusTwoLogLikelihood,
-                  gr = minusTwoScore
-  )
+  #hh1 <- optimHess(par = x0,
+  #                fn = minusTwoLogLikelihood,
+  #                gr = minusTwoScore
+  #)
+
+  hh1 <- numDeriv::jacobian(func = minusTwoScore,
+                            x = x0)
 
   ainv <- rep(1,length(x0))
   ainv[7] <- exp(pars$lsigma.b)

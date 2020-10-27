@@ -42,7 +42,7 @@ generateSamples <- function(samples = 10,
   df <- data.frame(
     sample = as.factor(rep(1:samples, each = participants)),
     subject = as.factor(rep(1:participants, times = samples)),
-    classIntercept = rmultinomial(n = samples*participants, size=1, prob=c(3,1,2)) %*% c(-2,0,3),
+    classIntercept = rmultinomial(n = samples*participants, size=1, prob=c(3,1,2)) %*% c(-1, 0, 1.5),
     randIntercept1 = bMat[,1],
     randIntercept2 = bMat[,2],
     treatment = c(0,1)
