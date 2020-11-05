@@ -6,7 +6,7 @@ fit.parametric <- function(d) {
   set.seed(1410L + key)
   flog.debug(paste0('Fitting parametric model to sample ', key))
   
-  nTimePoints <- d %>% group_by(subject) %>% summarize(n=n()) %>% pull(n) %>% max
+  nTimePoints <- d %>% group_by(subject) %>% summarize(n=n(), .groups="drop") %>% pull(n) %>% max
   
   #Fit ignorable model to find initial values for parameters
   

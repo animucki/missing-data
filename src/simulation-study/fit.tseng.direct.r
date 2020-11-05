@@ -1,19 +1,7 @@
-#Sigma.b <- matrix(c(2,0.9,0.9,2),2)
-#bGrid <- mvQuad::createNIGrid(dim = 2, type = 'GHe', level = 10)
-#mvQuad::rescale(bGrid, m=c(0,0), C=Sigma.b)
-#mvQuad::quadrature(
-#  f = function(b) b[,1]^2 * b[,2]^2 * mc2d::dmultinormal(x = b, mean = c(0,0), sigma = as.vector(Sigma.b)),
-#  grid = bGrid)
-#
-#xGrid <- mvQuad::createNIGrid(dim = 1, type = 'GHe', level = 20)
-#mvQuad::quadrature(function (x) x^2 * mc2d::dmultinormal(x), xGrid)
-
 fit.tseng <- function(d) {
   key <- as.integer(d$sample[1])
   set.seed(88810L + key)
   flog.debug(paste0('Fitting Tseng model (direct) to sample ', key))
-
-  nTimePoints <- d %>% group_by(subject) %>% summarize(n=n()) %>% pull(n) %>% max
 
   #Fit ignorable model to find initial values for parameters
 
@@ -46,11 +34,12 @@ fit.tseng <- function(d) {
                         sigma.b1 * sigma.b2 * rho.b,
                         sigma.b2^2), ncol = 2)
 
-    # make grid
+    llik <- 0
+
+    # make 2d grid
     bGrid <- zGrid
     mvQuad::rescale(bGrid, m=c(0,0), C=Sigma.b)
 
-    llik <- 0
     for (i in seq_along(ds)) {
       # integrate this subject's likelihood, and accumulate
       Xi <- as.matrix(ds[[i]] %>% dplyr::select(time, treatment))
@@ -79,13 +68,22 @@ fit.tseng <- function(d) {
                method = 'L-BFGS-B',
                lower = c(rep(-Inf, 6), 1e-4, 1e-4, -1+1e-4, 1e-4),
                upper = c(rep( Inf, 6),  Inf,  Inf,  1-1e-4, Inf),
-               control = list(trace=3, REPORT=1)
+               control = list(ndeps = c(rep(1e-3, 6), rep(1e-6, 4)))
   )
 
   hh <- numDeriv::hessian(func = minusTwoLogLikelihood,
-                            x = x0)
+                          x = res$par,
+                          method = 'Richardson',
+                          method.args = list(eps = 1e-6, d = 1e-6))
 
-  out <- c(key, res$par[c(1,2,3,7,10)], sqrt(diag(2*solve(hh))[c(1,2,3,7,10)]) )
+  if (all(eigen(hh)$values > 0) & (kappa(hh) < 1e16)) {
+    out <- c(key, res$par[c(1,2,3,7,10)], sqrt(diag(2*solve(hh))[c(1,2,3,7,10)]) )
+  } else {
+    out <- c(key, res$par[c(1,2,3,7,10)], rep(NA_real_, 5) )
+  }
+
+  names(out) <- c('sample','intercept', 'time', 'treatment', 'sigma.b', 'sigma',
+                  'se.intercept', 'se.time', 'se.treatment', 'se.sigma.b', 'se.sigma')
 
   as.data.frame(as.list(out))
 }

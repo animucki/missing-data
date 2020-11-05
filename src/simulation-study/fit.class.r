@@ -5,7 +5,7 @@ fit.class <- function(d) {
   flog.debug(paste0('Fitting class model to sample ', key))
 
   nSubjects <- length(unique(d$subject))
-  nTimePoints <- d %>% group_by(subject) %>% summarize(n=n()) %>% pull(n) %>% max
+  nTimePoints <- d %>% group_by(subject) %>% summarize(n=n(), .groups="drop") %>% pull(n) %>% max
   nClasses <- 3
 
   # prepare grad0 (initial gradient)
