@@ -27,8 +27,8 @@ source("src/simulation-study/fit.class.r")
 source("src/simulation-study/fit.npsp.r")
 source("src/simulation-study/fit.multiple.r")
 
-set.seed(668L)
-df1 <- generateSamples(samples = 50, participants = 100)
+set.seed(669L)
+df1 <- generateSamples(samples = 49, participants = 1000)
 
 # ALL SAMPLES
 res <- list()
@@ -54,5 +54,4 @@ res[[4]] <- df1 %>% mutate(y=yMNAR4, r=rMNAR4) %>% group_split(sample) %>% mclap
 toc()
 
 result <- bind_rows(res)
-View(result)
-write.csv2(result, './data/result-allmodels-samples-0001-to-0050.csv', row.names = FALSE)
+write.csv2(result, './data/result-seed669-1000participants-49samples-other2.csv', row.names = FALSE)
